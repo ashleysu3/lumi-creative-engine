@@ -39,13 +39,19 @@ function modelProviderFor(request:Request,env:Env) {
     : undefined;
 }
 
+function studioPageHtml() {
+  return agencyStudioHtml
+    .replace('<button id="sampleProfile" class="ghost">Load sample</button>','<button id="sampleProfile" class="ghost">Load sample</button><button class="secondary" onclick="location.href=\'/research\'">Research website</button>')
+    .replace('sample();health();',`(()=>{const id=localStorage.getItem('after-organic-last-profile');const raw=id&&localStorage.getItem('after-organic-profile:'+id);if(raw){try{populateProfile(JSON.parse(raw));$('profileStatus').className='status good';$('profileStatus').textContent='Loaded saved client profile.'}catch{sample()}}else{sample()}health()})();`);
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     if (request.method === 'OPTIONS') return new Response(null,{ status:204, headers:corsHeaders });
     const url = new URL(request.url);
 
     if ((url.pathname === '/' || url.pathname === '/studio') && request.method === 'GET') {
-      return new Response(agencyStudioHtml,{ headers:{ 'content-type':'text/html; charset=utf-8','cache-control':'no-store' } });
+      return new Response(studioPageHtml(),{ headers:{ 'content-type':'text/html; charset=utf-8','cache-control':'no-store' } });
     }
 
     if ((url.pathname === '/research' || url.pathname === '/studio/research') && request.method === 'GET') {
