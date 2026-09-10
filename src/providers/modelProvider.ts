@@ -5,6 +5,7 @@ export const ModelTaskSchema = z.enum([
   'creative-brief',
   'carousel-copy',
   'video-script',
+  'website-research',
   'semantic-qa',
   'visual-qa'
 ]);
