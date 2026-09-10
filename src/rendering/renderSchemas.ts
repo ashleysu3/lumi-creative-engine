@@ -30,7 +30,14 @@ export const RenderDesignTokensSchema = z.object({
   layoutNotes:z.array(z.string()).optional()
 });
 
-export const StaticLayoutVariantSchema = z.enum(['split-card','editorial-overlay','native-caption','app-native','screenshot-frame','statement-card']);
+export const StaticLayoutVariantSchema = z.enum(['split-card','editorial-overlay','native-caption','app-native','screenshot-frame','statement-card','comparison-split']);
+
+export const ComparisonContentSchema = z.object({
+  leftLabel:z.string(),
+  leftText:z.string(),
+  rightLabel:z.string(),
+  rightText:z.string()
+});
 
 export const StaticRenderSpecSchema = z.object({
   kind:z.literal('static'),
@@ -42,7 +49,10 @@ export const StaticRenderSpecSchema = z.object({
   negativePrompt:z.array(z.string()).default([]),
   primaryAssetId:z.string().optional(),
   assetSource:z.enum(['uploaded','generated','hybrid']),
+  cropAnchor:z.enum(['top','center','bottom']).default('center'),
   layoutVariant:StaticLayoutVariantSchema,
+  comparison:ComparisonContentSchema.optional(),
+  annotations:z.array(z.string()).default([]),
   design:RenderDesignTokensSchema,
   overlays:z.array(TextOverlaySchema),
   layoutRules:z.array(z.string()).default([]),
@@ -70,6 +80,7 @@ export const CarouselRenderSpecSchema = z.object({
   height:z.number().int().positive(),
   primaryAssetId:z.string().optional(),
   assetSource:z.enum(['uploaded','generated','hybrid']),
+  cropAnchor:z.enum(['top','center','bottom']).default('center'),
   design:RenderDesignTokensSchema,
   slides:z.array(CarouselSlideSchema).min(1),
   continuityRules:z.array(z.string()).default([]),
@@ -108,6 +119,7 @@ export type TextOverlay = z.infer<typeof TextOverlaySchema>;
 export type RenderTypographyRole = z.infer<typeof RenderTypographyRoleSchema>;
 export type RenderDesignTokens = z.infer<typeof RenderDesignTokensSchema>;
 export type StaticLayoutVariant = z.infer<typeof StaticLayoutVariantSchema>;
+export type ComparisonContent = z.infer<typeof ComparisonContentSchema>;
 export type StaticRenderSpec = z.infer<typeof StaticRenderSpecSchema>;
 export type CarouselSlide = z.infer<typeof CarouselSlideSchema>;
 export type CarouselRenderSpec = z.infer<typeof CarouselRenderSpecSchema>;
