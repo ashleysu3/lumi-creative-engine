@@ -28,6 +28,7 @@ export * from './studio/profileSchemas.js';
 export * from './studio/engineAdapter.js';
 export * from './studio/deliverables.js';
 export * from './studio/websiteResearch.js';
+export * from './studio/refineWebsiteResearch.js';
 
 import {
   CreativeEngineInputSchema,
