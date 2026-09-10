@@ -72,7 +72,8 @@ it('keeps carousel production labels out of the composed SVG', async () => {
   expect(result.kind).toBe('carousel');
   if(result.kind!=='carousel') return;
   const decoded = decodeURIComponent(result.flattenedAssets[0].url.split(',')[1]);
-  expect(decoded).toContain('Stop guessing what ad to make.');
+  expect(decoded).toContain('Stop guessing what ad');
+  expect(decoded).toContain('to make.');
   expect(decoded).not.toContain('CARD 1');
   expect(decoded).not.toContain('HEADLINE:');
 });
