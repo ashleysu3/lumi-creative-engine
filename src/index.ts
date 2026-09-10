@@ -24,6 +24,9 @@ export * from './providers/modelProvider.js';
 export * from './providers/openaiModelProvider.js';
 export * from './providers/openaiImageProvider.js';
 export * from './providers/openaiResponseSchemas.js';
+export * from './studio/profileSchemas.js';
+export * from './studio/engineAdapter.js';
+export * from './studio/deliverables.js';
 
 import {
   CreativeEngineInputSchema,
@@ -43,7 +46,7 @@ import { qualityCheck } from './qa/qualityCheck.js';
 import { compileCreativeOutput } from './rendering/compileCreativeOutput.js';
 import type { ModelProvider } from './providers/modelProvider.js';
 
-export const ENGINE_VERSION = '0.7.2';
+export const ENGINE_VERSION = '0.8.0';
 
 export type GenerateCreativeSetOptions = {
   modelProvider?: ModelProvider;
@@ -94,7 +97,7 @@ async function refineBriefs(
   return { briefs };
 }
 
-/** Stable orchestration boundary consumed by Lumi. */
+/** Stable creative-engine boundary consumed by the agency studio and future product surfaces. */
 export async function generateCreativeSet(rawInput: CreativeEngineInput, options:GenerateCreativeSetOptions = {}): Promise<CreativeEngineOutput> {
   const input = CreativeEngineInputSchema.parse(rawInput);
   const seededRoutes = generateRoutes(input);
