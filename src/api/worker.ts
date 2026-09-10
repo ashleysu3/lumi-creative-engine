@@ -1,11 +1,16 @@
 import { handleGenerateCreativeSet } from './http.js';
+import { handleRenderCreative } from './renderHttp.js';
 import { OpenAIModelProvider } from '../providers/openaiModelProvider.js';
+import { OpenAIImageProvider, type OpenAIImageQuality } from '../providers/openaiImageProvider.js';
+import { SvgCompositionProvider } from '../rendering/svgCompositionProvider.js';
 
 type Env = {
   LUMI_ENGINE_TOKEN?: string;
   OPENAI_API_KEY?: string;
   OPENAI_MODEL?: string;
   OPENAI_REASONING_EFFORT?: 'none'|'low'|'medium'|'high'|'xhigh'|'max';
+  OPENAI_IMAGE_MODEL?: string;
+  OPENAI_IMAGE_QUALITY?: OpenAIImageQuality;
 };
 
 const corsHeaders = {
@@ -13,6 +18,10 @@ const corsHeaders = {
   'access-control-allow-methods': 'POST,OPTIONS',
   'access-control-allow-headers': 'authorization,content-type,x-lumi-model-mode'
 };
+
+function jsonResult(result:{status:number;headers?:Record<string,string>;body:string}) {
+  return new Response(result.body,{ status:result.status,headers:{...corsHeaders,...(result.headers??{})} });
+}
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -22,9 +31,15 @@ export default {
       ok:true,
       service:'lumi-creative-engine',
       modelProviderConfigured:Boolean(env.OPENAI_API_KEY),
-      model:env.OPENAI_API_KEY ? (env.OPENAI_MODEL ?? 'gpt-5.6-terra') : null
+      model:env.OPENAI_API_KEY ? (env.OPENAI_MODEL ?? 'gpt-5.6-terra') : null,
+      imageProviderConfigured:Boolean(env.OPENAI_API_KEY),
+      imageModel:env.OPENAI_API_KEY ? (env.OPENAI_IMAGE_MODEL ?? 'gpt-image-2.5-flare') : null,
+      compositionProvider:'svg'
     },{ headers:corsHeaders });
-    if (url.pathname !== '/v1/creative/generate' || request.method !== 'POST') return Response.json({ ok:false,error:'not_found' },{ status:404, headers:corsHeaders });
+
+    if (request.method !== 'POST' || !['/v1/creative/generate','/v1/creative/render'].includes(url.pathname)) {
+      return Response.json({ ok:false,error:'not_found' },{ status:404, headers:corsHeaders });
+    }
 
     if (env.LUMI_ENGINE_TOKEN) {
       const auth = request.headers.get('authorization');
@@ -35,6 +50,18 @@ export default {
     try { body = await request.json(); }
     catch { return Response.json({ ok:false,error:'invalid_json' },{ status:400, headers:corsHeaders }); }
 
+    if (url.pathname === '/v1/creative/render') {
+      const imageProvider = env.OPENAI_API_KEY ? new OpenAIImageProvider({
+        apiKey:env.OPENAI_API_KEY,
+        model:env.OPENAI_IMAGE_MODEL ?? 'gpt-image-2.5-flare',
+        quality:env.OPENAI_IMAGE_QUALITY ?? 'high'
+      }) : undefined;
+      return jsonResult(await handleRenderCreative(body,{
+        sceneProvider:imageProvider,
+        compositionProvider:new SvgCompositionProvider()
+      }));
+    }
+
     const modelMode = request.headers.get('x-lumi-model-mode') ?? 'auto';
     const modelProvider = env.OPENAI_API_KEY && modelMode !== 'deterministic'
       ? new OpenAIModelProvider({
@@ -44,11 +71,10 @@ export default {
         })
       : undefined;
 
-    const result = await handleGenerateCreativeSet(body, {
+    return jsonResult(await handleGenerateCreativeSet(body, {
       modelProvider,
       refineRoutes:Boolean(modelProvider),
       refineBriefs:Boolean(modelProvider)
-    });
-    return new Response(result.body,{ status:result.status, headers:{ ...corsHeaders, ...(result.headers ?? {}) } });
+    }));
   }
 };
