@@ -37,12 +37,14 @@ describe('research cleanup',()=>{
     };
 
     const cleaned=cleanupWebsiteResearch(result);
-    expect(cleaned.proofCandidates).toEqual(['More than 250 clients have completed the strategy process.']);
+    expect(cleaned.proofCandidates.join(' ')).toContain('250 clients');
+    expect(cleaned.proofCandidates.join(' ')).toContain('blank page');
+    expect(cleaned.proofCandidates.join(' ')).not.toContain('Our clients use the platform');
     expect(cleaned.exactLanguageCandidates.join(' ')).toContain('blank page');
     expect(cleaned.exactLanguageCandidates.join(' ')).not.toMatch(/privacy policy/i);
     expect(cleaned.profileDraft.offers[0].deliverables).toEqual(['Creative strategy','Campaign plan']);
     expect(cleaned.profileDraft.audiences[0].pains.some((x:string)=>/overwhelmed|guessing/i.test(x))).toBe(true);
     expect(cleaned.profileDraft.brandVoice.phrasesToUse).toEqual(['Stop guessing what to make']);
-    expect(cleaned.profileDraft.proofLibrary[0].approvedForAds).toBe(false);
+    expect(cleaned.profileDraft.proofLibrary.every((x:any)=>x.approvedForAds===false)).toBe(true);
   });
 });
