@@ -22,7 +22,7 @@ function context(input:CreativeEngineInput, route:CreativeRoute){
     mediaSummary:input.mediaAssets.map(a=>({
       id:a.id,type:a.type,orientation:a.orientation,founderPresent:a.founderPresent,faceVisible:a.faceVisible,
       tags:a.tags,trustPotential:a.trustPotential,textOverlaySuitability:a.textOverlaySuitability,
-      authenticityScore:a.authenticityScore,nativeFeedFeel:a.nativeFeedFeel,segments:a.segments
+      nativeFeedFeel:a.nativeFeedFeel,segments:a.segments
     }))
   };
 }
