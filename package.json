@@ -1,12 +1,13 @@
 {
   "name": "@adsbylumi/creative-engine",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "check": "npm run typecheck && npm test"
   },
   "devDependencies": {
     "typescript": "^5.9.2",
