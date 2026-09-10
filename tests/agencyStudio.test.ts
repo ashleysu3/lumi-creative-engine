@@ -14,7 +14,7 @@ const profile:ClientCreativeProfile = {
     {id:'proof-ok',type:'metric',text:'80% of clients complete the strategy session.',verified:true,approvedForAds:true},
     {id:'proof-no',type:'testimonial',text:'Unapproved testimonial.',verified:true,approvedForAds:false}
   ],
-  competitors:[],creativeLearning:{winningAngles:['Specificity beats volume.'],losingAngles:[],winningHooks:[],fatiguedHooks:[],winningFormats:['founder editorial'],weakFormats:[],founderNotes:[],visualNotes:[],audienceLearnings:['Relief converts better than hype.'],performanceNotes:[]},globalConstraints:['No income promises'],mediaAssets:[],sourceNotes:[]
+  competitors:[],creativeLearning:{winningAngles:['Specificity beats volume.'],losingAngles:[],winningHooks:[],fatiguedHooks:[],winningFormats:['founder editorial'],weakFormats:[],founderNotes:[],visualNotes:[],audienceLearnings:['Relief converts better than hype.'],performanceNotes:[]},globalConstraints:['No income promises'],mediaAssets:[],sourceLinks:[],sourceNotes:[]
 };
 
 const campaign:CampaignBrief = {
