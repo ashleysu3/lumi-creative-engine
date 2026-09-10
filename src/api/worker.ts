@@ -1,5 +1,6 @@
 import { handleGenerateCreativeSet } from './http.js';
 import { handleRenderCreative } from './renderHttp.js';
+import { creativeLabHtml } from './labHtml.js';
 import { OpenAIModelProvider } from '../providers/openaiModelProvider.js';
 import { OpenAIImageProvider, type OpenAIImageQuality } from '../providers/openaiImageProvider.js';
 import { SvgCompositionProvider } from '../rendering/svgCompositionProvider.js';
@@ -27,6 +28,11 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     if (request.method === 'OPTIONS') return new Response(null,{ status:204, headers:corsHeaders });
     const url = new URL(request.url);
+
+    if ((url.pathname === '/' || url.pathname === '/lab') && request.method === 'GET') {
+      return new Response(creativeLabHtml,{ headers:{ 'content-type':'text/html; charset=utf-8','cache-control':'no-store' } });
+    }
+
     if (url.pathname === '/health') return Response.json({
       ok:true,
       service:'lumi-creative-engine',
@@ -34,7 +40,8 @@ export default {
       model:env.OPENAI_API_KEY ? (env.OPENAI_MODEL ?? 'gpt-5.6-terra') : null,
       imageProviderConfigured:Boolean(env.OPENAI_API_KEY),
       imageModel:env.OPENAI_API_KEY ? (env.OPENAI_IMAGE_MODEL ?? 'gpt-image-2.5-flare') : null,
-      compositionProvider:'svg'
+      compositionProvider:'svg',
+      labAvailable:true
     },{ headers:corsHeaders });
 
     if (request.method !== 'POST' || !['/v1/creative/generate','/v1/creative/render'].includes(url.pathname)) {
