@@ -49,6 +49,8 @@ export const MediaSegmentSchema = z.object({
 export const MediaAssetSchema = z.object({
   id:z.string(), type:z.enum(["image","video","screenshot","logo","other"]), url:z.string().optional(),
   width:z.number().optional(), height:z.number().optional(), durationSeconds:z.number().optional(), founderPresent:z.boolean().default(false), faceVisible:z.boolean().default(false),
+  faceFullyVisible:z.boolean().optional(), faceProminence:z.enum(['low','medium','high']).optional(), cropFlexibility:z.number().min(0).max(100).optional(),
+  contextRelevance:z.number().min(0).max(100).optional(), visualProfessionalism:z.number().min(0).max(100).optional(),
   tags:z.array(z.string()).default([]), textOverlaySuitability:z.number().min(0).max(100).optional(), trustPotential:z.number().min(0).max(100).optional(),
   orientation:z.enum(['portrait','landscape','square','unknown']).default('unknown'), negativeSpace:z.enum(['low','medium','high']).optional(),
   nativeFeedFeel:z.number().min(0).max(100).optional(), segments:z.array(MediaSegmentSchema).default([])
@@ -87,7 +89,7 @@ export const CreativeBriefSchema = z.object({
 });
 
 export const MediaMatchSchema = z.object({
-  source:z.enum(["uploaded","generated","hybrid"]), primaryAssetId:z.string().optional(), score:z.number().min(0).max(100).optional(), reason:z.string(), backupAssetIds:z.array(z.string()).default([]), cropGuidance:z.string().optional(), warnings:z.array(z.string()).default([]),
+  source:z.enum(["uploaded","generated","hybrid"]), primaryAssetId:z.string().optional(), score:z.number().min(0).max(100).optional(), suitabilityScore:z.number().min(0).max(100).optional(), reason:z.string(), backupAssetIds:z.array(z.string()).default([]), cropGuidance:z.string().optional(), cropAnchor:z.enum(['top','center','bottom']).default('center'), warnings:z.array(z.string()).default([]),
   selectedSegmentIds:z.array(z.string()).default([]), preserveAuthenticity:z.boolean().default(true)
 });
 
