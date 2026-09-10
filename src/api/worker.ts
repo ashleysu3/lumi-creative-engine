@@ -1,8 +1,10 @@
 import { handleGenerateCreativeSet } from './http.js';
 import { handleRenderCreative } from './renderHttp.js';
 import { handleAgencyStudioGenerate } from './studioHttp.js';
+import { handleWebsiteResearch } from './researchHttp.js';
 import { creativeLabHtml } from './labHtml.js';
 import { agencyStudioHtml } from './studioHtml.js';
+import { websiteResearchHtml } from './researchHtml.js';
 import { OpenAIModelProvider } from '../providers/openaiModelProvider.js';
 import { OpenAIImageProvider, type OpenAIImageQuality } from '../providers/openaiImageProvider.js';
 import { SvgCompositionProvider } from '../rendering/svgCompositionProvider.js';
@@ -46,6 +48,10 @@ export default {
       return new Response(agencyStudioHtml,{ headers:{ 'content-type':'text/html; charset=utf-8','cache-control':'no-store' } });
     }
 
+    if ((url.pathname === '/research' || url.pathname === '/studio/research') && request.method === 'GET') {
+      return new Response(websiteResearchHtml,{ headers:{ 'content-type':'text/html; charset=utf-8','cache-control':'no-store' } });
+    }
+
     if (url.pathname === '/lab' && request.method === 'GET') {
       return new Response(creativeLabHtml,{ headers:{ 'content-type':'text/html; charset=utf-8','cache-control':'no-store' } });
     }
@@ -60,10 +66,11 @@ export default {
       imageModel:env.OPENAI_API_KEY ? (env.OPENAI_IMAGE_MODEL ?? 'gpt-image-2.5-flare') : null,
       compositionProvider:'svg',
       studioAvailable:true,
+      websiteResearchAvailable:true,
       labAvailable:true
     },{ headers:corsHeaders });
 
-    if (request.method !== 'POST' || !['/v1/creative/generate','/v1/creative/render','/v1/studio/generate'].includes(url.pathname)) {
+    if (request.method !== 'POST' || !['/v1/creative/generate','/v1/creative/render','/v1/studio/generate','/v1/studio/research-website'].includes(url.pathname)) {
       return Response.json({ ok:false,error:'not_found' },{ status:404, headers:corsHeaders });
     }
 
@@ -75,6 +82,10 @@ export default {
     let body: unknown;
     try { body = await request.json(); }
     catch { return Response.json({ ok:false,error:'invalid_json' },{ status:400, headers:corsHeaders }); }
+
+    if (url.pathname === '/v1/studio/research-website') {
+      return jsonResult(await handleWebsiteResearch(body));
+    }
 
     if (url.pathname === '/v1/creative/render') {
       const imageProvider = env.OPENAI_API_KEY ? new OpenAIImageProvider({
