@@ -30,6 +30,11 @@ export const WebsiteResearchSynthesisSchema = z.object({
     differentiators:z.array(z.string()).default([]),
     objections:z.array(z.string()).default([])
   }).optional(),
+  proofReview:z.array(z.object({
+    text:z.string(),
+    classification:z.enum(['likely-proof','example-or-demo','not-proof']),
+    reason:z.string().default('')
+  })).default([]),
   researchNotes:z.array(z.string()).default([])
 });
 
@@ -53,6 +58,10 @@ function compactResearchContext(result:WebsiteResearchResult) {
   };
 }
 
+function key(text:string) {
+  return text.toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+}
+
 export async function refineWebsiteResearchWithModel(result:WebsiteResearchResult,provider:ModelProvider):Promise<WebsiteResearchResult> {
   const raw = await provider.generate<ReturnType<typeof compactResearchContext>,unknown>({
     task:'website-research',
@@ -64,13 +73,16 @@ Rules:
 - Prefer specific source-grounded language over generic marketing phrasing.
 - Customer-language entries must be exact or near-exact language actually present in supplied quotes, FAQs, headings, or page copy.
 - If a field is not supported by the source, omit it or return an empty array. Do not guess.
-- Treat proof/results as research context only. Do not approve claims for advertising.
 - Separate audience pain from desired outcomes and from objections.
 - For uniqueMechanism, only state a mechanism if the source explains why/how the offer works differently.
-- Return JSON only with these optional keys: clientName, industry, businessSummary, brandVoice, audience, offer, researchNotes.
+- Be especially careful with pages that SHOW EXAMPLE ADS, DEMO COPY, mock dashboards, sample testimonials, template content, fictional customers, or illustrative metrics. Those examples describe what the product can create; they are NOT automatically proof about the business itself.
+- Review every supplied proofCandidates item. Classify it as likely-proof, example-or-demo, or not-proof. A likely-proof item must read as an actual factual result, customer testimonial, credential, adoption metric, or case-study claim about this business/offer — not a sample ad being displayed on the page.
+- Never approve proof for advertising; this classification only decides whether it belongs in the human-review queue.
+- Return JSON only with these optional keys: clientName, industry, businessSummary, brandVoice, audience, offer, proofReview, researchNotes.
 - brandVoice may contain traits, phrasesToUse, writingNotes.
 - audience may contain description, desires, pains, objections, customerLanguage, buyingTriggers, anxieties.
-- offer may contain name, offerType, summary, primaryPromise, uniqueMechanism, deliverables, differentiators, objections.`
+- offer may contain name, offerType, summary, primaryPromise, uniqueMechanism, deliverables, differentiators, objections.
+- proofReview is an array of {text, classification, reason}; use the candidate text exactly so it can be matched back to the source evidence.`
   });
 
   const synthesis = WebsiteResearchSynthesisSchema.parse(raw);
@@ -104,6 +116,16 @@ Rules:
     offer.differentiators=synthesis.offer.differentiators;
     offer.objections=synthesis.offer.objections;
   }
+
+  if (synthesis.proofReview.length) {
+    const likely=new Set(synthesis.proofReview.filter(item=>item.classification==='likely-proof').map(item=>key(item.text)));
+    const excluded=synthesis.proofReview.filter(item=>item.classification!=='likely-proof');
+    result.proofCandidates=result.proofCandidates.filter(text=>likely.has(key(text)));
+    profile.proofLibrary=profile.proofLibrary.filter(item=>likely.has(key(item.text)));
+    if (offer) offer.proofItemIds=profile.proofLibrary.map(item=>item.id);
+    if (excluded.length) profile.sourceNotes.push(`AI proof review excluded ${excluded.length} candidate${excluded.length===1?'':'s'} as demo/example or non-proof content.`);
+  }
+
   profile.sourceNotes=[...profile.sourceNotes,...synthesis.researchNotes,'Semantic website synthesis completed with configured model provider.'];
   return result;
 }
