@@ -8,6 +8,16 @@ export type TextOverlay = {
   maxLines?:number;
 };
 
+export type RenderDesignTokens = {
+  colors:string[];
+  headlineFont?:string;
+  bodyFont?:string;
+  photoTreatment?:string;
+  motifs:string[];
+};
+
+export type StaticLayoutVariant = 'split-card'|'editorial-overlay'|'native-caption'|'app-native'|'screenshot-frame'|'statement-card';
+
 export type StaticRenderSpec = {
   kind:'static';
   mode:'scene-only'|'fully-designed';
@@ -18,6 +28,8 @@ export type StaticRenderSpec = {
   negativePrompt:string[];
   primaryAssetId?:string;
   assetSource:'uploaded'|'generated'|'hybrid';
+  layoutVariant:StaticLayoutVariant;
+  design:RenderDesignTokens;
   overlays:TextOverlay[];
   layoutRules:string[];
   generationReady:boolean;
@@ -44,6 +56,7 @@ export type CarouselRenderSpec = {
   height:number;
   primaryAssetId?:string;
   assetSource:'uploaded'|'generated'|'hybrid';
+  design:RenderDesignTokens;
   slides:CarouselSlide[];
   continuityRules:string[];
   generationReady:boolean;
@@ -70,6 +83,25 @@ function safeText(value?:string){
   if (!value) return undefined;
   const banned = /^(card|slide)\s*\d+|^(headline|subhead|body|hook|cta)\s*:|visual should|left side|right side|show |drawn across/i;
   return banned.test(value.trim()) ? undefined : value.trim();
+}
+
+function designTokens(brief:CreativeBrief):RenderDesignTokens {
+  return {
+    colors:brief.brandAdaptation.colors,
+    headlineFont:brief.brandAdaptation.headlineFont,
+    bodyFont:brief.brandAdaptation.bodyFont,
+    photoTreatment:brief.brandAdaptation.photoTreatment,
+    motifs:brief.brandAdaptation.motifs
+  };
+}
+
+function layoutVariantForFormat(format:string):StaticLayoutVariant {
+  if (format === 'editorial-static') return 'editorial-overlay';
+  if (format === 'ugc-photo-overlay') return 'native-caption';
+  if (format === 'notes-app' || format === 'fake-message' || format === 'search-bar' || format === 'lofi-native-graphic') return 'app-native';
+  if (format === 'annotated-screenshot') return 'screenshot-frame';
+  if (format === 'designed-static') return 'split-card';
+  return 'statement-card';
 }
 
 function buildStatic(route:CreativeRoute, brief:CreativeBrief, media:MediaMatch):StaticRenderSpec {
@@ -99,6 +131,8 @@ function buildStatic(route:CreativeRoute, brief:CreativeBrief, media:MediaMatch)
     ],
     primaryAssetId:media.primaryAssetId,
     assetSource:media.source,
+    layoutVariant:layoutVariantForFormat(route.format),
+    design:designTokens(brief),
     overlays:[
       { role:'headline', text:headline, placement:'Primary text-safe area with strong mobile hierarchy; never cover face, product, or critical UI.', maxLines:4 },
       ...(support ? [{ role:'support' as const, text:support, placement:'Secondary text-safe area directly supporting the headline.', maxLines:3 }] : []),
@@ -126,7 +160,7 @@ function buildCarousel(route:CreativeRoute, brief:CreativeBrief, media:MediaMatc
 
   return {
     kind:'carousel', aspectRatio:'4:5', width:1080, height:1350,
-    primaryAssetId:media.primaryAssetId, assetSource:media.source,
+    primaryAssetId:media.primaryAssetId, assetSource:media.source, design:designTokens(brief),
     slides:[
       { slideNumber:1, role:'hook', headline, subhead:support, visualType: media.primaryAssetId ? 'hybrid':'type-led', visualDescription:brief.visualConcept, layoutType:'hero-hook', prohibitedRenderText:forbidden },
       { slideNumber:2, role:'problem', headline:slide2Headline, body:support, visualType:'graphic', visualDescription:'One concise visual contrast that makes the audience tension understandable at a glance.', layoutType: compare ? 'split-comparison':'single-idea', prohibitedRenderText:forbidden },
