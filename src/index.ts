@@ -49,7 +49,7 @@ import { qualityCheck } from './qa/qualityCheck.js';
 import { compileCreativeOutput } from './rendering/compileCreativeOutput.js';
 import type { ModelProvider } from './providers/modelProvider.js';
 
-export const ENGINE_VERSION = '0.9.1';
+export const ENGINE_VERSION = '0.10.0';
 
 export type GenerateCreativeSetOptions = {
   modelProvider?: ModelProvider;
