@@ -10,6 +10,7 @@ export * from './briefs/generateCreativeBrief.js';
 export * from './briefs/matchMedia.js';
 export * from './qa/semanticQA.js';
 export * from './qa/qualityCheck.js';
+export * from './rendering/compileCreativeOutput.js';
 
 import {
   CreativeEngineInputSchema,
