@@ -29,6 +29,7 @@ export * from './studio/engineAdapter.js';
 export * from './studio/deliverables.js';
 export * from './studio/websiteResearch.js';
 export * from './studio/refineWebsiteResearch.js';
+export * from './studio/researchCleanup.js';
 
 import {
   CreativeEngineInputSchema,
@@ -48,7 +49,7 @@ import { qualityCheck } from './qa/qualityCheck.js';
 import { compileCreativeOutput } from './rendering/compileCreativeOutput.js';
 import type { ModelProvider } from './providers/modelProvider.js';
 
-export const ENGINE_VERSION = '0.9.0';
+export const ENGINE_VERSION = '0.9.1';
 
 export type GenerateCreativeSetOptions = {
   modelProvider?: ModelProvider;
