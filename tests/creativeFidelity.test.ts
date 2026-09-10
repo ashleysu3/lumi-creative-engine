@@ -26,6 +26,19 @@ function input(overrides:Partial<CreativeEngineInput> = {}):CreativeEngineInput 
   };
 }
 
+const comparisonBrief:CreativeBrief = {
+  routeId:'r',headline:'Stop collecting random hooks.',supportingCopy:'You do not need 100 random hooks. You need the right strategic directions.',cta:'See how',visualConcept:'Comparison',composition:'Split',focalPoint:'Comparison',mustInclude:[],mustAvoid:[],
+  brandAdaptation:{colors:['#ffffff','#111111','#d977a8','#f2eee8'],headlineFont:'Georgia',bodyFont:'Inter',motifs:[]}
+};
+
+function comparisonRoute(format:'designed-static'|'carousel'='designed-static'):CreativeRoute {
+  return {
+    id:'r',angleId:'a1',archetypeId:'old-way-new-way',format,productionTreatmentId:'editorial-still',styleId:'direct-response',
+    conceptName:'Old vs new',singleBigIdea:'Strategy should lead the creative.',primaryHook:'Old way vs. better way',visualSummary:'comparison',whyItFits:'fit',
+    scores:{strategicClarity:90,visualStopPower:90,relevance:90,specificity:90,glanceComprehension:90}
+  };
+}
+
 describe('format fidelity',()=>{
   it('does not choose annotated-screenshot when no real screenshot exists',()=>{
     const mix = buildCreativeMix(input({mediaAssets:[{id:'founder',type:'image',founderPresent:true,faceVisible:true,tags:['founder'],orientation:'portrait',segments:[]}]}));
@@ -41,21 +54,24 @@ describe('format fidelity',()=>{
   });
 
   it('compiles comparison archetypes into an actual comparison layout',()=>{
-    const route:CreativeRoute = {
-      id:'r',angleId:'a1',archetypeId:'old-way-new-way',format:'designed-static',productionTreatmentId:'editorial-still',styleId:'direct-response',
-      conceptName:'Old vs new',singleBigIdea:'Strategy should lead the creative.',primaryHook:'Old way vs. better way',visualSummary:'comparison',whyItFits:'fit',
-      scores:{strategicClarity:90,visualStopPower:90,relevance:90,specificity:90,glanceComprehension:90}
-    };
-    const brief:CreativeBrief = {
-      routeId:'r',headline:'Stop collecting random hooks.',supportingCopy:'You do not need 100 random hooks. You need the right strategic directions.',cta:'See how',visualConcept:'Comparison',composition:'Split',focalPoint:'Comparison',mustInclude:[],mustAvoid:[],
-      brandAdaptation:{colors:['#ffffff','#111111','#d977a8','#f2eee8'],headlineFont:'Georgia',bodyFont:'Inter',motifs:[]}
-    };
-    const plan = compileCreativeOutput(route,brief,{source:'generated',reason:'none',backupAssetIds:[],warnings:[],selectedSegmentIds:[],preserveAuthenticity:true});
+    const plan = compileCreativeOutput(comparisonRoute(),comparisonBrief,{source:'generated',reason:'none',backupAssetIds:[],warnings:[],selectedSegmentIds:[],preserveAuthenticity:true});
     expect(plan.kind).toBe('static');
     if(plan.kind!=='static') return;
     expect(plan.layoutVariant).toBe('comparison-split');
     expect(plan.comparison?.leftText).toBe('100 random hooks');
     expect(plan.comparison?.rightText).toBe('the right strategic directions');
+  });
+
+  it('carries meaningful old-vs-new content into carousel slide 2',()=>{
+    const plan = compileCreativeOutput(comparisonRoute('carousel'),comparisonBrief,{source:'generated',reason:'none',backupAssetIds:[],warnings:[],selectedSegmentIds:[],preserveAuthenticity:true});
+    expect(plan.kind).toBe('carousel');
+    if(plan.kind!=='carousel') return;
+    expect(plan.slides[1].headline).toBe('Old way vs. better way');
+    expect(plan.slides[1].comparison?.leftText).toBe('100 random hooks');
+    expect(plan.slides[1].comparison?.rightText).toBe('the right strategic directions');
+    expect(plan.slides[2].layoutType).toBe('statement-emphasis');
+    expect(plan.slides[3].layoutType).toBe('cta-card');
+    expect(plan.slides[3].headline).toBe('Ready for the better way?');
   });
 });
 
@@ -82,6 +98,14 @@ describe('media suitability',()=>{
     expect(first.primaryAssetId).toBe('founder');
     expect(repeated.source).not.toBe('uploaded');
   });
+
+  it('does not reuse a founder photo for a non-founder carousel when it already appeared',()=>{
+    const mediaAssets:CreativeEngineInput['mediaAssets'] = [{id:'founder',type:'image',founderPresent:true,faceVisible:true,faceFullyVisible:true,tags:['founder'],trustPotential:95,textOverlaySuitability:85,orientation:'portrait',segments:[]}];
+    const result = matchMedia(input({mediaAssets}),comparisonRoute('carousel'),{founder:1});
+    expect(result.source).toBe('generated');
+    expect(result.primaryAssetId).toBeUndefined();
+    expect(result.reason).toMatch(/already appears elsewhere|does not specifically need/i);
+  });
 });
 
 describe('render quality',()=>{
@@ -98,5 +122,19 @@ describe('render quality',()=>{
     expect(decoded).not.toContain('…');
     expect(visibleText).toContain(headline);
     expect(decoded).toContain('xMidYMin slice');
+  });
+
+  it('renders carousel comparison copy as the actual old and new ideas',async()=>{
+    const provider = new SvgCompositionProvider();
+    const plan = compileCreativeOutput(comparisonRoute('carousel'),comparisonBrief,{source:'generated',reason:'none',backupAssetIds:[],warnings:[],selectedSegmentIds:[],preserveAuthenticity:true});
+    expect(plan.kind).toBe('carousel');
+    if(plan.kind!=='carousel') return;
+    const rendered = await provider.composeCarousel(plan,[]);
+    expect(rendered).toHaveLength(4);
+    expect(rendered.every(asset=>asset.width===1080 && asset.height===1350)).toBe(true);
+    const slide2 = decodeURIComponent(rendered[1].url.split(',')[1]).replace(/<[^>]+>/g,' ').replace(/\s+/g,' ');
+    expect(slide2).toContain('100 random hooks');
+    expect(slide2).toContain('the right strategic directions');
+    expect(slide2).not.toContain('SHIFT The familiar approach');
   });
 });
