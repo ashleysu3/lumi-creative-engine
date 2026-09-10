@@ -2,7 +2,8 @@ import type { WebsiteResearchResult, WebsitePageFinding } from './websiteResearc
 
 const BOILERPLATE = /\b(?:privacy policy|terms(?: of service| and conditions)?|cookie(?:s| policy)?|all rights reserved|copyright|log in|sign in|my account|shopping cart|skip to content|menu|newsletter|subscribe|follow us|contact us|accessibility|powered by|site map|sitemap)\b/i;
 const CTA_ONLY = /^(?:learn more|read more|get started|start now|click here|shop now|buy now|book now|apply now|join now|sign up|subscribe|contact us|download now)[.!]?$/i;
-const RESULT_WORDS = /\b(?:grew|growth|increase(?:d)?|decrease(?:d)?|saved|earned|generated|booked|sold|sales|revenue|roi|roas|conversion|conversions|clients?|customers?|students?|members?|results?|profit|leads?|appointments?|hours?|days?|weeks?|months?|years? experience|certified|award(?:ed)?|featured)\b/i;
+const RESULT_WORDS = /\b(?:grew|growth|increase(?:d)?|decrease(?:d)?|saved|earned|generated|booked|sold|sales|revenue|roi|roas|conversion|conversions|results?|profit|leads?|appointments?|completed|filled|launched|scaled|reduced|cut|doubled|tripled|certified|award(?:ed)?|featured)\b/i;
+const AUDIENCE_COUNT_WORDS = /\b(?:clients?|customers?|students?|members?|users?|founders?|businesses?|brands?)\b/i;
 const PAIN_WORDS = /\b(?:struggl\w*|tired|overwhelm\w*|frustrat\w*|stuck|confus\w*|wast\w*|hard|difficult|problem|without|fear\w*|stress\w*|burnout|challenge\w*|guess\w*|blank page|not working|isn'?t working|doesn'?t work)\b/i;
 const DESIRE_WORDS = /\b(?:want|finally|easier|simple|simpler|grow|build|create|save time|more sales|more leads|clarity|confidence|freedom|results?|transform|achieve|increase|book|launch|convert|conversion|profitable|consistent|scale)\b/i;
 const OBJECTION_WORDS = /\b(?:how much|cost|price|what if|do i need|does this|will this|can i|is this|refund|cancel|time|experience|beginner|worth|already use|another tool|too expensive|too much)\b/i;
@@ -30,6 +31,17 @@ function usable(text:string,min=12,max=220) {
   return true;
 }
 
+function cleanShortList(values:string[],max:number) {
+  const seen=new Set<string>();
+  return values.map(normalize).filter(text=>{
+    if (text.length<4 || text.length>95 || BOILERPLATE.test(text) || CTA_ONLY.test(text)) return false;
+    const key=canonical(text);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0,max);
+}
+
 function uniqueRanked(values:string[],score:(text:string)=>number,max:number,minScore=1) {
   const seen=new Set<string>();
   return values
@@ -44,16 +56,21 @@ function uniqueRanked(values:string[],score:(text:string)=>number,max:number,min
 }
 
 function numberSignal(text:string) {
-  return /(?:\$\s?\d|\b\d+(?:[.,]\d+)?%\b|\b\d{2,}[kKmM]?\+?\b)/.test(text);
+  return /(?:\$\s?\d|\b\d+(?:[.,]\d+)?%\b|\b\d+(?:\.\d+)?x\b|\b\d{2,}[kKmM]?\+?\b)/i.test(text);
 }
 
 function proofScore(text:string) {
   let score=0;
+  const quoted=/^[“\"']|[”\"']$/.test(text);
+  const firstPerson=/\b(?:i|i'm|i've|me|my|we|we're|our)\b/i.test(text);
   if (numberSignal(text)) score+=2;
   if (RESULT_WORDS.test(text)) score+=2;
-  if (/^[“\"']|[”\"']$/.test(text) || /\b(?:i|we|my|our)\b/i.test(text)) score+=1;
+  if (numberSignal(text) && AUDIENCE_COUNT_WORDS.test(text)) score+=2;
+  if (quoted) score+=2;
+  if (firstPerson) score+=1;
   if (/\b(?:testimonial|review|case study|featured in|certified|award)\b/i.test(text)) score+=2;
-  if (/\b(?:ai|platform|software|service|program)\b/i.test(text) && !numberSignal(text) && !/\b(?:testimonial|review|case study)\b/i.test(text)) score-=1;
+  if (/\bI help\b/i.test(text)) score-=2;
+  if (/\b(?:ai|platform|software|service|program)\b/i.test(text) && !numberSignal(text) && !quoted && !/\b(?:testimonial|review|case study)\b/i.test(text)) score-=1;
   return score;
 }
 
@@ -106,7 +123,7 @@ export function cleanupWebsiteResearch(result:WebsiteResearchResult):WebsiteRese
   const audience=profile.audiences[0];
 
   const proofPool=[...result.proofCandidates,...result.pages.flatMap(page=>[...page.quotes,...page.paragraphs,...page.listItems])];
-  const cleanedProof=uniqueRanked(proofPool,proofScore,12,4);
+  const cleanedProof=uniqueRanked(proofPool,proofScore,12,3);
   const languagePool=[...result.exactLanguageCandidates,...result.pages.flatMap(page=>[...page.questions,...page.quotes])];
   const cleanedLanguage=uniqueRanked(languagePool,languageScore,12,2);
 
@@ -120,7 +137,7 @@ export function cleanupWebsiteResearch(result:WebsiteResearchResult):WebsiteRese
   if (offer && offerPage) {
     const betterSummary=concise([offerPage.description,...offerPage.paragraphs,...offerPage.headings],220);
     if (betterSummary) offer.summary=betterSummary;
-    offer.deliverables=uniqueRanked(offer.deliverables,text=>text.length<=95?2:0,6,2);
+    offer.deliverables=cleanShortList(offer.deliverables,6);
     offer.objections=uniqueRanked([...offer.objections,...offerPage.questions],fieldScore(OBJECTION_WORDS),6,2);
   }
 
@@ -139,7 +156,7 @@ export function cleanupWebsiteResearch(result:WebsiteResearchResult):WebsiteRese
 
   profile.proofLibrary=cleanedProof.map((text,index)=>({
     id:`proof-${index}`,
-    type:numberSignal(text)?'metric':'other',
+    type:numberSignal(text)?('metric' as const):('other' as const),
     text,
     source:sourceForText(result.pages,text),
     verified:false,
