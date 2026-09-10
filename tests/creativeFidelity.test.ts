@@ -88,13 +88,15 @@ describe('render quality',()=>{
   it('keeps full headlines instead of inserting ellipses and uses face-safe top crops',async()=>{
     const provider = new SvgCompositionProvider();
     const asset = {url:'https://example.com/founder.jpg',width:1200,height:1800,mimeType:'image/jpeg' as const};
+    const headline = 'The hard part is not making an ad. It is knowing what the ad should actually say and show.';
     const result = await provider.composeStatic({
       kind:'static',mode:'scene-only',aspectRatio:'4:5',width:1080,height:1350,scenePrompt:'founder',negativePrompt:[],primaryAssetId:'founder',assetSource:'uploaded',cropAnchor:'top',layoutVariant:'split-card',design:{colors:['#ffffff','#111111','#d977a8','#f2eee8'],headlineFont:'Georgia',bodyFont:'Inter',motifs:[]},
-      overlays:[{role:'headline',text:'The hard part is not making an ad. It is knowing what the ad should actually say and show.',placement:'primary',maxLines:6},{role:'support',text:'You can open Canva or ChatGPT all day and still not know which creative idea deserves to be made.',placement:'secondary',maxLines:4}],layoutRules:[],generationReady:true
+      overlays:[{role:'headline',text:headline,placement:'primary',maxLines:6},{role:'support',text:'You can open Canva or ChatGPT all day and still not know which creative idea deserves to be made.',placement:'secondary',maxLines:4}],layoutRules:[],generationReady:true
     },asset);
     const decoded = decodeURIComponent(result.url.split(',')[1]);
+    const visibleText = decoded.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
     expect(decoded).not.toContain('…');
-    expect(decoded).toContain('actually say and show.');
+    expect(visibleText).toContain(headline);
     expect(decoded).toContain('xMidYMin slice');
   });
 });
