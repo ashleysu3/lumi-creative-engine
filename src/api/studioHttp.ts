@@ -3,7 +3,7 @@ import { MediaAssetSchema } from '../schemas/index.js';
 import { generateCreativeSet } from '../index.js';
 import { buildCreativeEngineInput } from '../studio/engineAdapter.js';
 import { AgencyDeliveryPackSchema, buildAgencyDeliveryPack } from '../studio/deliverables.js';
-import { CampaignBriefSchema, ClientCreativeProfileSchema } from '../studio/profileSchemas.js';
+import { CampaignBriefSchema, ClientCreativeProfileSchema, type ClientCreativeProfile } from '../studio/profileSchemas.js';
 import type { ModelProvider } from '../providers/modelProvider.js';
 import type { HttpResponse } from './http.js';
 
@@ -15,12 +15,25 @@ export const AgencyStudioRequestSchema = z.object({
 
 export type AgencyStudioHttpOptions = {
   modelProvider?:ModelProvider;
-  /**
-   * Internal agency output should never silently fall back to deterministic
-   * template copy. Tests may explicitly opt out when exercising plumbing.
-   */
+  /** Internal agency output must not silently fall back to deterministic template copy. */
   requireModelProvider?:boolean;
 };
+
+function websiteDraftNeedsSynthesis(profile:ClientCreativeProfile) {
+  const fromWebsiteResearch = profile.sourceNotes.some(note=>/website research draft generated|research cleanup applied/i.test(note));
+  const synthesized = profile.sourceNotes.some(note=>/semantic website synthesis completed/i.test(note));
+  return fromWebsiteResearch && !synthesized;
+}
+
+function profileQualityIssues(profile:ClientCreativeProfile) {
+  const offer=profile.offers[0];
+  const audience=profile.audiences[0];
+  const issues:string[]=[];
+  if (!profile.businessSummary || profile.businessSummary.length<20) issues.push('business summary');
+  if (!offer || !offer.summary || offer.summary.length<20) issues.push('offer summary');
+  if (!audience || !audience.description || /requires (?:agency )?review|needs agency review/i.test(audience.description)) issues.push('audience definition');
+  return issues;
+}
 
 export async function handleAgencyStudioGenerate(body:unknown,options:AgencyStudioHttpOptions={}):Promise<HttpResponse> {
   const parsed = AgencyStudioRequestSchema.safeParse(body);
@@ -39,6 +52,32 @@ export async function handleAgencyStudioGenerate(body:unknown,options:AgencyStud
         ok:false,
         error:'ai_required_for_agency_generation',
         message:'Agency creative generation is disabled because no AI model provider is configured. Deterministic mode is for engine tests only and is not allowed to produce client deliverables.'
+      })
+    };
+  }
+
+  if (websiteDraftNeedsSynthesis(parsed.data.profile)) {
+    return {
+      status:422,
+      headers:{'content-type':'application/json'},
+      body:JSON.stringify({
+        ok:false,
+        error:'client_profile_needs_semantic_research',
+        message:'This client profile came from a source-only website crawl. Re-run Client Research with AI synthesis enabled before generating agency creative, or manually complete and save the client profile.'
+      })
+    };
+  }
+
+  const qualityIssues=profileQualityIssues(parsed.data.profile);
+  if (qualityIssues.length) {
+    return {
+      status:422,
+      headers:{'content-type':'application/json'},
+      body:JSON.stringify({
+        ok:false,
+        error:'client_profile_too_thin',
+        message:`The client brain is missing reliable ${qualityIssues.join(', ')}. Improve the client research/profile before generating creative.`,
+        issues:qualityIssues
       })
     };
   }
