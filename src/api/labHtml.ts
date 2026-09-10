@@ -1,4 +1,4 @@
-export const creativeLabHtml = `<!doctype html>
+export const creativeLabHtml = String.raw`<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
