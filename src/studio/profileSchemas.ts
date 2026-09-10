@@ -11,6 +11,13 @@ export const ProofItemSchema = z.object({
   notes:z.string().optional()
 });
 
+export const ClientSourceLinkSchema = z.object({
+  type:z.enum(['website','sales-page','instagram','facebook','tiktok','youtube','linkedin','pinterest','threads','other']),
+  url:z.string(),
+  status:z.enum(['discovered','provided','connected','analyzed','needs-connection','unavailable']).default('discovered'),
+  notes:z.string().optional()
+});
+
 export const AudienceProfileSchema = z.object({
   id:z.string(),
   name:z.string(),
@@ -79,6 +86,7 @@ export const ClientCreativeProfileSchema = z.object({
   creativeLearning:CreativeLearningSchema.default(emptyCreativeLearning),
   globalConstraints:z.array(z.string()).default([]),
   mediaAssets:z.array(MediaAssetSchema).default([]),
+  sourceLinks:z.array(ClientSourceLinkSchema).default([]),
   sourceNotes:z.array(z.string()).default([]),
   updatedAt:z.string().optional()
 });
@@ -114,3 +122,4 @@ export type CampaignBrief = z.infer<typeof CampaignBriefSchema>;
 export type AudienceProfile = z.infer<typeof AudienceProfileSchema>;
 export type OfferProfile = z.infer<typeof OfferProfileSchema>;
 export type ProofItem = z.infer<typeof ProofItemSchema>;
+export type ClientSourceLink = z.infer<typeof ClientSourceLinkSchema>;
