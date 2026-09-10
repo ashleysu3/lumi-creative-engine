@@ -60,7 +60,7 @@ export const QualityResultSchema = z.object({
   status: z.enum(["ready", "minor", "auto-fix", "blocked"]), criticalFailures: z.array(z.string()).default([]), warnings: z.array(z.string()).default([])
 });
 
-export const CreativeConceptSchema = z.object({ route: CreativeRouteSchema, brief: CreativeBriefSchema, mediaMatch: MediaMatchSchema, qa: QualityResultSchema.optional(), renderPlan: z.unknown().optional() });
+export const CreativeConceptSchema = z.object({ route: CreativeRouteSchema, brief: CreativeBriefSchema, mediaMatch: MediaMatchSchema, qa: QualityResultSchema, renderPlan: z.unknown().optional() });
 export const CreativeEngineOutputSchema = z.object({ requestId: z.string(), engineVersion: z.string(), concepts: z.array(CreativeConceptSchema), warnings: z.array(z.string()).default([]) });
 
 export type CreativeEngineInput = z.infer<typeof CreativeEngineInputSchema>;
