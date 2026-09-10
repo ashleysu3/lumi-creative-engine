@@ -89,7 +89,7 @@ export const CreativeBriefSchema = z.object({
 });
 
 export const MediaMatchSchema = z.object({
-  source:z.enum(["uploaded","generated","hybrid"]), primaryAssetId:z.string().optional(), score:z.number().min(0).max(100).optional(), suitabilityScore:z.number().min(0).max(100).optional(), reason:z.string(), backupAssetIds:z.array(z.string()).default([]), cropGuidance:z.string().optional(), cropAnchor:z.enum(['top','center','bottom']).default('center'), warnings:z.array(z.string()).default([]),
+  source:z.enum(["uploaded","generated","hybrid"]), primaryAssetId:z.string().optional(), score:z.number().min(0).max(100).optional(), suitabilityScore:z.number().min(0).max(100).optional(), reason:z.string(), backupAssetIds:z.array(z.string()).default([]), cropGuidance:z.string().optional(), cropAnchor:z.enum(['top','center','bottom']).optional(), warnings:z.array(z.string()).default([]),
   selectedSegmentIds:z.array(z.string()).default([]), preserveAuthenticity:z.boolean().default(true)
 });
 
