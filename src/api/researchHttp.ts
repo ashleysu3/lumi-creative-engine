@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { researchWebsite } from '../studio/websiteResearch.js';
+import { refineWebsiteResearchWithModel } from '../studio/refineWebsiteResearch.js';
 import type { ClientSourceLink } from '../studio/profileSchemas.js';
+import type { ModelProvider } from '../providers/modelProvider.js';
 import type { HttpResponse } from './http.js';
 
 export const WebsiteResearchRequestSchema = z.object({
@@ -8,6 +10,8 @@ export const WebsiteResearchRequestSchema = z.object({
   maxPages:z.number().int().min(1).max(15).optional(),
   extraUrls:z.array(z.string()).max(10).optional()
 });
+
+export type WebsiteResearchHttpOptions = { modelProvider?:ModelProvider };
 
 function normalizeUrl(value:string) {
   try { return new URL(value.startsWith('http') ? value : `https://${value}`).toString(); }
@@ -30,7 +34,7 @@ function sourceType(url:string):ClientSourceLink['type'] {
 
 function unique(values:string[]) { return [...new Set(values.filter(Boolean))]; }
 
-export async function handleWebsiteResearch(body:unknown):Promise<HttpResponse> {
+export async function handleWebsiteResearch(body:unknown,options:WebsiteResearchHttpOptions={}):Promise<HttpResponse> {
   const parsed = WebsiteResearchRequestSchema.safeParse(body);
   if (!parsed.success) {
     return {status:400,headers:{'content-type':'application/json'},body:JSON.stringify({ok:false,error:'invalid_research_input',issues:parsed.error.issues})};
@@ -44,7 +48,7 @@ export async function handleWebsiteResearch(body:unknown):Promise<HttpResponse> 
       try { return new URL(url).origin===rootOrigin; } catch { return false; }
     });
 
-    const data = await researchWebsite({...parsed.data,url:root || parsed.data.url,extraUrls:sameSiteExtras});
+    let data = await researchWebsite({...parsed.data,url:root || parsed.data.url,extraUrls:sameSiteExtras});
     const socialLinks = unique([...data.discoveredSocialLinks,...providedSocial]);
     data.discoveredSocialLinks = socialLinks;
     const socialNotes = socialLinks.map(url=>`Social profile discovered/provided: ${url}`);
@@ -54,7 +58,13 @@ export async function handleWebsiteResearch(body:unknown):Promise<HttpResponse> 
       ...sameSiteExtras.filter(url=>url!==data.rootUrl).map(url=>({type:'sales-page' as const,url,status:'analyzed' as const,notes:'Provided as an additional same-site research source.'})),
       ...socialLinks.map(url=>({type:sourceType(url),url,status:'needs-connection' as const,notes:'Social source recorded. Connect or import this source for deeper content analysis.'}))
     ];
-    return {status:200,headers:{'content-type':'application/json'},body:JSON.stringify({ok:true,data})};
+
+    if (options.modelProvider) {
+      try { data = await refineWebsiteResearchWithModel(data,options.modelProvider); }
+      catch (error) { data.warnings.push(`AI synthesis unavailable; deterministic research draft used. ${error instanceof Error?error.message:''}`.trim()); }
+    }
+
+    return {status:200,headers:{'content-type':'application/json'},body:JSON.stringify({ok:true,data,semanticSynthesis:Boolean(options.modelProvider)})};
   } catch (error) {
     return {status:422,headers:{'content-type':'application/json'},body:JSON.stringify({ok:false,error:'website_research_failed',message:error instanceof Error?error.message:'Unknown error'})};
   }
