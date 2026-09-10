@@ -9,6 +9,10 @@ function isVideoFormat(format:string) {
   return ['talking-head','talking-head-captions','broll-text','broll-voiceover','screen-recording','screen-recording-facecam','ugc-demo','founder-story-video','testimonial-video','motion-graphic','kinetic-typography','meme-reel','pov-video'].includes(format);
 }
 
+function isFounderSpecificRoute(route:CreativeRoute) {
+  return route.format === 'ugc-photo-overlay' || route.format === 'editorial-static' || /founder|confession|story|identity|pov/.test(route.archetypeId);
+}
+
 function scoreAsset(asset: MediaAsset, input: CreativeEngineInput, route: CreativeRoute, usage:MediaUsageCounts) {
   let score = 18;
   const reasons: string[] = [];
@@ -60,7 +64,7 @@ function scoreAsset(asset: MediaAsset, input: CreativeEngineInput, route: Creati
 
   const reuseCount = usage[asset.id] ?? 0;
   if (reuseCount > 0 && !wantsScreenshot && !wantsVideo) {
-    const penalty = Math.min(32,reuseCount*16);
+    const penalty = Math.min(40,reuseCount*18);
     score -= penalty;
     reasons.push(`asset reuse penalty -${penalty}`);
   }
@@ -112,7 +116,6 @@ export function matchMedia(input: CreativeEngineInput, route: CreativeRoute, usa
 
   if (!ranked.length) return generated('No media asset is appropriate for this format.');
 
-  const best = ranked[0];
   const founderEligibleRoute = input.brand.photography.founderLed && !isVideoFormat(route.format) && route.format !== 'annotated-screenshot';
   const strongFounder = ranked.find(r => r.asset.founderPresent && r.asset.faceVisible && r.asset.faceFullyVisible !== false && (r.asset.trustPotential ?? 70) >= 70 && r.score >= 62);
 
@@ -120,8 +123,22 @@ export function matchMedia(input: CreativeEngineInput, route: CreativeRoute, usa
     ranked = [strongFounder,...ranked.filter(r=>r.asset.id!==strongFounder.asset.id)];
   }
 
-  const selected = ranked[0];
-  const selectedUseCount = usage[selected.asset.id] ?? 0;
+  let selected = ranked[0];
+  let selectedUseCount = usage[selected.asset.id] ?? 0;
+  const founderSpecific = isFounderSpecificRoute(route);
+
+  if (selected.asset.founderPresent && selectedUseCount > 0 && !founderSpecific && route.format !== 'annotated-screenshot') {
+    const diverseAlternative = ranked.find(r => r.asset.id !== selected.asset.id && (usage[r.asset.id] ?? 0) === 0 && r.score >= 58);
+    if (diverseAlternative) {
+      selected = diverseAlternative;
+      selectedUseCount = usage[selected.asset.id] ?? 0;
+    } else {
+      return generated('The available founder image already appears elsewhere in this batch, and this concept does not specifically need the founder. Use a generated, product-led, screenshot-led, or additional uploaded visual instead.',[
+        'Media diversity rule prevented another reuse of the same founder image.'
+      ]);
+    }
+  }
+
   const exactScreenshot = route.format === 'annotated-screenshot' && selected.asset.type === 'screenshot';
   const exactVideo = isVideoFormat(route.format) && selected.asset.type === 'video';
   const strongFounderChosen = founderEligibleRoute && selectedUseCount < 2 && selected.asset.founderPresent && selected.asset.faceVisible && selected.asset.faceFullyVisible !== false && (selected.asset.trustPotential ?? 70) >= 70;
