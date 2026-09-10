@@ -2,7 +2,7 @@ import type { CarouselRenderSpec, CarouselSlide, StaticRenderSpec, TextOverlay }
 import type { CompositionProvider, RenderedAsset } from './renderProvider.js';
 
 function escapeXml(value:string):string {
-  return value.replace(/[&<>"']/g,char=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;' }[char] ?? char));
+  return value.replace(/[&<>"']/g,char=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&apos;' }[char] ?? char));
 }
 
 function wrapAll(text:string,maxChars:number):string[] {
@@ -21,17 +21,15 @@ function wrapAll(text:string,maxChars:number):string[] {
 function fitBlock(text:string,width:number,startFont:number,minFont:number,maxLines:number,lineRatio=1.14) {
   let fontSize = startFont;
   let lines:string[] = [];
-  while (fontSize >= minFont) {
+  const hardMin = Math.max(18,Math.min(minFont,30));
+  while (fontSize >= hardMin) {
     const approxChars = Math.max(7,Math.floor(width/(fontSize*0.54)));
     lines = wrapAll(text,approxChars);
     if (lines.length <= maxLines) break;
     fontSize -= 2;
   }
-  if (lines.length > maxLines && fontSize < minFont) {
-    fontSize = Math.max(32,minFont-8);
-    const approxChars = Math.max(7,Math.floor(width/(fontSize*0.54)));
-    lines = wrapAll(text,approxChars);
-  }
+  if (!lines.length) lines = wrapAll(text,Math.max(7,Math.floor(width/(Math.max(fontSize,hardMin)*0.54))));
+  fontSize = Math.max(fontSize,hardMin);
   const lineHeight = Math.round(fontSize*lineRatio);
   return { lines,fontSize,lineHeight,height:Math.max(lineHeight,lines.length*lineHeight) };
 }
@@ -109,16 +107,20 @@ function staticSvg(spec:StaticRenderSpec,scene?:RenderedAsset):string {
   const eyebrowStyle = roleStyle(spec,'eyebrow');
   const pad = 72;
   const safeWidth = width-pad*2;
-  const defs = `<defs><filter id="shadow"><feDropShadow dx="0" dy="12" stdDeviation="18" flood-opacity="0.16"/></filter><linearGradient id="scrim" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity="0.02"/><stop offset="1" stop-color="#000" stop-opacity="0.72"/></linearGradient></defs>`;
+  const defs = `<defs><filter id="shadow"><feDropShadow dx="0" dy="12" stdDeviation="18" flood-opacity="0.16"/></filter><linearGradient id="scrim" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity="0.03"/><stop offset="0.52" stop-color="#000" stop-opacity="0.12"/><stop offset="1" stop-color="#000" stop-opacity="0.82"/></linearGradient></defs>`;
   let body = `<rect width="${width}" height="${height}" fill="${escapeXml(background)}"/>`;
+  let variant = spec.layoutVariant;
+  if (!scene && ['split-card','editorial-overlay','native-caption'].includes(variant)) variant = 'statement-emphasis';
 
-  if (spec.layoutVariant === 'comparison-split' && spec.comparison) {
-    const h = textSvg({text:headline,x:pad,y:78,width:safeWidth,startFont:68,minFont:46,maxLines:4,fontFamily:headlineStyle.family,fontWeight:headlineStyle.weight,fill:ink,transform:headlineStyle.transform,tracking:headlineStyle.tracking});
+  if (variant === 'comparison-split' && spec.comparison) {
+    body += `<rect width="${width}" height="${height}" fill="${escapeXml(background)}"/>`;
+    body += `<rect x="${pad}" y="72" width="92" height="8" rx="4" fill="${escapeXml(accent)}"/>`;
+    const h = textSvg({text:headline,x:pad,y:116,width:safeWidth,startFont:62,minFont:40,maxLines:3,fontFamily:headlineStyle.family,fontWeight:headlineStyle.weight,fill:ink,transform:headlineStyle.transform,tracking:headlineStyle.tracking});
     body += h.svg;
-    const cardsY = Math.max(390,120+h.height);
-    const gap = 24;
+    const cardsY = Math.max(390,160+h.height);
+    const gap = 26;
     const cardW = (safeWidth-gap)/2;
-    const cardH = Math.min(650,height-cardsY-190);
+    const cardH = Math.max(430,Math.min(610,height-cardsY-(cta?190:90)));
     const leftX = pad;
     const rightX = pad+cardW+gap;
     body += `<rect x="${leftX}" y="${cardsY}" width="${cardW}" height="${cardH}" rx="30" fill="${escapeXml(secondary)}"/>`;
@@ -126,51 +128,58 @@ function staticSvg(spec:StaticRenderSpec,scene?:RenderedAsset):string {
     const leftLabel = textSvg({text:spec.comparison.leftLabel,x:leftX+34,y:cardsY+38,width:cardW-68,startFont:20,minFont:18,maxLines:1,fontFamily:eyebrowStyle.family,fontWeight:700,fill:ink,transform:'uppercase',tracking:1.5});
     const rightLabel = textSvg({text:spec.comparison.rightLabel,x:rightX+34,y:cardsY+38,width:cardW-68,startFont:20,minFont:18,maxLines:1,fontFamily:eyebrowStyle.family,fontWeight:700,fill:background,transform:'uppercase',tracking:1.5});
     body += leftLabel.svg+rightLabel.svg;
-    const leftText = textSvg({text:spec.comparison.leftText,x:leftX+34,y:cardsY+105,width:cardW-68,startFont:42,minFont:30,maxLines:8,fontFamily:headlineStyle.family,fontWeight:650,fill:ink});
-    const rightText = textSvg({text:spec.comparison.rightText,x:rightX+34,y:cardsY+105,width:cardW-68,startFont:42,minFont:30,maxLines:8,fontFamily:headlineStyle.family,fontWeight:650,fill:background});
+    const leftText = textSvg({text:spec.comparison.leftText,x:leftX+34,y:cardsY+108,width:cardW-68,startFont:40,minFont:28,maxLines:7,fontFamily:headlineStyle.family,fontWeight:650,fill:ink});
+    const rightText = textSvg({text:spec.comparison.rightText,x:rightX+34,y:cardsY+108,width:cardW-68,startFont:40,minFont:28,maxLines:7,fontFamily:headlineStyle.family,fontWeight:650,fill:background});
     body += leftText.svg+rightText.svg;
-    body += `<path d="M ${width/2-22} ${cardsY+cardH/2} L ${width/2+22} ${cardsY+cardH/2}" stroke="${escapeXml(accent)}" stroke-width="8" stroke-linecap="round"/><path d="M ${width/2+8} ${cardsY+cardH/2-14} L ${width/2+25} ${cardsY+cardH/2} L ${width/2+8} ${cardsY+cardH/2+14}" fill="none" stroke="${escapeXml(accent)}" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>`;
-    if (cta) body += buttonSvg(spec,cta,pad,height-130,330,accent,background);
-  } else if (spec.layoutVariant === 'split-card') {
-    const imageH = scene ? 650 : 0;
-    if (scene) body += imageSvg(scene,0,0,width,imageH,spec.cropAnchor);
-    const panelY = scene ? 610 : 0;
-    body += `<rect x="0" y="${panelY}" width="${width}" height="${height-panelY}" rx="${scene?38:0}" fill="${escapeXml(background)}"/>`;
+    const arrowY = cardsY+Math.min(cardH-80,Math.max(235,Math.max(leftText.height,rightText.height)+145));
+    body += `<path d="M ${width/2-24} ${arrowY} L ${width/2+24} ${arrowY}" stroke="${escapeXml(accent)}" stroke-width="8" stroke-linecap="round"/><path d="M ${width/2+8} ${arrowY-14} L ${width/2+25} ${arrowY} L ${width/2+8} ${arrowY+14}" fill="none" stroke="${escapeXml(accent)}" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>`;
+    if (cta) body += buttonSvg(spec,cta,pad,height-128,330,accent,background);
+  } else if (variant === 'split-card') {
+    const imageH = 575;
+    body += imageSvg(scene,0,0,width,imageH,spec.cropAnchor);
+    const panelY = 540;
+    body += `<rect x="0" y="${panelY}" width="${width}" height="${height-panelY}" rx="38" fill="${escapeXml(background)}"/>`;
     body += `<rect x="${pad}" y="${panelY+48}" width="70" height="8" rx="4" fill="${escapeXml(accent)}"/>`;
-    const h = textSvg({text:headline,x:pad,y:panelY+82,width:safeWidth,startFont:68,minFont:44,maxLines:5,fontFamily:headlineStyle.family,fontWeight:headlineStyle.weight,fill:ink,transform:headlineStyle.transform,tracking:headlineStyle.tracking});
+    const h = textSvg({text:headline,x:pad,y:panelY+82,width:safeWidth,startFont:64,minFont:38,maxLines:5,fontFamily:headlineStyle.family,fontWeight:headlineStyle.weight,fill:ink,transform:headlineStyle.transform,tracking:headlineStyle.tracking});
     body += h.svg;
-    const supportY = panelY+100+h.height;
-    if (support && supportY < height-230) {
-      const s = textSvg({text:support,x:pad,y:supportY,width:safeWidth,startFont:29,minFont:23,maxLines:4,fontFamily:bodyStyle.family,fontWeight:bodyStyle.weight,fill:ink,transform:bodyStyle.transform,tracking:bodyStyle.tracking,lineRatio:1.28});
+    const ctaY = height-128;
+    const supportY = panelY+102+h.height;
+    if (support && supportY < (cta ? ctaY-100 : height-95)) {
+      const s = textSvg({text:support,x:pad,y:supportY,width:safeWidth,startFont:27,minFont:21,maxLines:3,fontFamily:bodyStyle.family,fontWeight:bodyStyle.weight,fill:ink,transform:bodyStyle.transform,tracking:bodyStyle.tracking,lineRatio:1.25});
       body += s.svg;
     }
-    if (cta) body += buttonSvg(spec,cta,pad,height-135,360,accent,background);
-  } else if (spec.layoutVariant === 'editorial-overlay') {
-    body += scene ? imageSvg(scene,0,0,width,height,spec.cropAnchor) : `<rect width="${width}" height="${height}" fill="${escapeXml(secondary)}"/>`;
+    if (cta) body += buttonSvg(spec,cta,pad,ctaY,360,accent,background);
+  } else if (variant === 'editorial-overlay') {
+    body += imageSvg(scene,0,0,width,height,spec.cropAnchor);
     body += `<rect width="${width}" height="${height}" fill="url(#scrim)"/>`;
-    body += `<rect x="${pad}" y="${height-610}" width="74" height="8" rx="4" fill="${escapeXml(accent)}"/>`;
-    const h = textSvg({text:headline,x:pad,y:height-565,width:safeWidth,startFont:72,minFont:46,maxLines:5,fontFamily:headlineStyle.family,fontWeight:headlineStyle.weight,fill:'#ffffff',transform:headlineStyle.transform,tracking:headlineStyle.tracking});
+    const headlineY = height-620;
+    body += `<rect x="${pad}" y="${headlineY-38}" width="74" height="8" rx="4" fill="${escapeXml(accent)}"/>`;
+    const h = textSvg({text:headline,x:pad,y:headlineY,width:safeWidth,startFont:64,minFont:36,maxLines:5,fontFamily:headlineStyle.family,fontWeight:headlineStyle.weight,fill:'#ffffff',transform:headlineStyle.transform,tracking:headlineStyle.tracking});
     body += h.svg;
-    if (support) {
-      const sY = Math.min(height-180,height-545+h.height+24);
-      const s = textSvg({text:support,x:pad,y:sY,width:720,startFont:28,minFont:22,maxLines:3,fontFamily:bodyStyle.family,fontWeight:500,fill:'#ffffff',transform:bodyStyle.transform,tracking:bodyStyle.tracking,lineRatio:1.25});
+    const ctaY = height-120;
+    const supportY = height-220;
+    if (support && headlineY+h.height < supportY-22) {
+      const s = textSvg({text:support,x:pad,y:supportY,width:760,startFont:24,minFont:20,maxLines:2,fontFamily:bodyStyle.family,fontWeight:500,fill:'#ffffff',transform:bodyStyle.transform,tracking:bodyStyle.tracking,lineRatio:1.22});
       body += s.svg;
     }
-    if (cta) body += buttonSvg(spec,cta,pad,height-125,330,accent,'#ffffff');
-  } else if (spec.layoutVariant === 'native-caption') {
-    body += scene ? imageSvg(scene,0,0,width,height,spec.cropAnchor) : `<rect width="${width}" height="${height}" fill="${escapeXml(secondary)}"/>`;
-    const panelH = 430;
-    body += `<rect x="42" y="${height-panelH-42}" width="${width-84}" height="${panelH}" rx="30" fill="${escapeXml(background)}" opacity="0.96"/>`;
-    const h = textSvg({text:headline,x:82,y:height-panelH+4,width:width-164,startFont:58,minFont:40,maxLines:4,fontFamily:headlineStyle.family,fontWeight:headlineStyle.weight,fill:ink,transform:headlineStyle.transform,tracking:headlineStyle.tracking});
+    if (cta) body += buttonSvg(spec,cta,pad,ctaY,330,accent,'#ffffff');
+  } else if (variant === 'native-caption') {
+    body += imageSvg(scene,0,0,width,height,spec.cropAnchor);
+    const panelH = 520;
+    const panelY = height-panelH-38;
+    body += `<rect x="42" y="${panelY}" width="${width-84}" height="${panelH}" rx="30" fill="${escapeXml(background)}" opacity="0.97"/>`;
+    const h = textSvg({text:headline,x:82,y:panelY+48,width:width-164,startFont:54,minFont:34,maxLines:4,fontFamily:headlineStyle.family,fontWeight:headlineStyle.weight,fill:ink,transform:headlineStyle.transform,tracking:headlineStyle.tracking});
     body += h.svg;
-    if (support) {
-      const s = textSvg({text:support,x:82,y:height-panelH+30+h.height,width:width-164,startFont:27,minFont:22,maxLines:3,fontFamily:bodyStyle.family,fontWeight:bodyStyle.weight,fill:ink,lineRatio:1.25});
+    const ctaY = height-128;
+    const supportY = panelY+70+h.height;
+    if (support && supportY < (cta ? ctaY-92 : height-85)) {
+      const s = textSvg({text:support,x:82,y:supportY,width:width-164,startFont:25,minFont:20,maxLines:2,fontFamily:bodyStyle.family,fontWeight:bodyStyle.weight,fill:ink,lineRatio:1.22});
       body += s.svg;
     }
-    if (cta) body += buttonSvg(spec,cta,82,height-135,330,accent,background);
-  } else if (spec.layoutVariant === 'screenshot-frame') {
+    if (cta) body += buttonSvg(spec,cta,82,ctaY,330,accent,background);
+  } else if (variant === 'screenshot-frame') {
     body += `<rect x="42" y="42" width="${width-84}" height="${height-84}" rx="40" fill="${escapeXml(secondary)}"/>`;
-    const h = textSvg({text:headline,x:pad,y:86,width:safeWidth,startFont:58,minFont:40,maxLines:4,fontFamily:headlineStyle.family,fontWeight:headlineStyle.weight,fill:ink,transform:headlineStyle.transform,tracking:headlineStyle.tracking});
+    const h = textSvg({text:headline,x:pad,y:86,width:safeWidth,startFont:58,minFont:38,maxLines:4,fontFamily:headlineStyle.family,fontWeight:headlineStyle.weight,fill:ink,transform:headlineStyle.transform,tracking:headlineStyle.tracking});
     body += h.svg;
     const frameY = Math.max(315,120+h.height);
     const frameH = Math.min(690,height-frameY-220);
@@ -184,30 +193,63 @@ function staticSvg(spec:StaticRenderSpec,scene?:RenderedAsset):string {
       body += a.svg;
     });
     if (support) {
-      const s = textSvg({text:support,x:pad,y:frameY+frameH+32,width:safeWidth,startFont:26,minFont:21,maxLines:3,fontFamily:bodyStyle.family,fontWeight:bodyStyle.weight,fill:ink,lineRatio:1.25});
+      const s = textSvg({text:support,x:pad,y:frameY+frameH+32,width:safeWidth,startFont:25,minFont:20,maxLines:2,fontFamily:bodyStyle.family,fontWeight:bodyStyle.weight,fill:ink,lineRatio:1.22});
       body += s.svg;
     }
-  } else if (spec.layoutVariant === 'app-native') {
+  } else if (variant === 'app-native') {
     body += `<rect width="${width}" height="${height}" fill="${escapeXml(secondary)}"/>`;
-    body += `<rect x="70" y="140" width="${width-140}" height="${height-280}" rx="44" fill="${escapeXml(background)}" filter="url(#shadow)"/>`;
-    body += `<circle cx="116" cy="194" r="9" fill="${escapeXml(accent)}"/><circle cx="144" cy="194" r="9" fill="${escapeXml(accent)}" opacity="0.55"/>`;
-    const h = textSvg({text:headline,x:120,y:278,width:width-240,startFont:64,minFont:42,maxLines:5,fontFamily:headlineStyle.family,fontWeight:headlineStyle.weight,fill:ink,transform:headlineStyle.transform,tracking:headlineStyle.tracking});
+    body += `<rect x="70" y="120" width="${width-140}" height="${height-240}" rx="44" fill="${escapeXml(background)}" filter="url(#shadow)"/>`;
+    body += `<circle cx="116" cy="174" r="9" fill="${escapeXml(accent)}"/><circle cx="144" cy="174" r="9" fill="${escapeXml(accent)}" opacity="0.55"/>`;
+    const h = textSvg({text:headline,x:120,y:252,width:width-240,startFont:62,minFont:38,maxLines:5,fontFamily:headlineStyle.family,fontWeight:headlineStyle.weight,fill:ink,transform:headlineStyle.transform,tracking:headlineStyle.tracking});
     body += h.svg;
     if (support) {
-      const s = textSvg({text:support,x:120,y:320+h.height,width:width-240,startFont:30,minFont:23,maxLines:5,fontFamily:bodyStyle.family,fontWeight:bodyStyle.weight,fill:ink,lineRatio:1.28});
+      const s = textSvg({text:support,x:120,y:292+h.height,width:width-240,startFont:28,minFont:22,maxLines:4,fontFamily:bodyStyle.family,fontWeight:bodyStyle.weight,fill:ink,lineRatio:1.25});
       body += s.svg;
     }
-    if (cta) body += buttonSvg(spec,cta,120,height-265,width-240,accent,background);
+    if (cta) body += buttonSvg(spec,cta,120,height-238,width-240,accent,background);
+  } else if (variant === 'statement-emphasis') {
+    body += `<rect width="${width}" height="${height}" fill="${escapeXml(secondary)}"/>`;
+    body += `<rect x="44" y="44" width="${width-88}" height="${height-88}" rx="40" fill="${escapeXml(background)}"/>`;
+    body += `<circle cx="${width-165}" cy="170" r="105" fill="${escapeXml(accent)}" opacity="0.10"/>`;
+    body += `<rect x="84" y="90" width="88" height="8" rx="4" fill="${escapeXml(accent)}"/>`;
+    const h = textSvg({text:headline,x:84,y:150,width:width-168,startFont:72,minFont:40,maxLines:4,fontFamily:headlineStyle.family,fontWeight:headlineStyle.weight,fill:ink,transform:headlineStyle.transform,tracking:headlineStyle.tracking});
+    body += h.svg;
+    if (support) {
+      const cardY = Math.max(610,220+h.height);
+      const cardH = Math.min(430,height-cardY-100);
+      body += `<rect x="84" y="${cardY}" width="${width-168}" height="${cardH}" rx="34" fill="${escapeXml(ink)}"/>`;
+      body += `<rect x="118" y="${cardY+42}" width="52" height="7" rx="4" fill="${escapeXml(accent)}"/>`;
+      const s = textSvg({text:support,x:118,y:cardY+88,width:width-236,startFont:36,minFont:24,maxLines:5,fontFamily:bodyStyle.family,fontWeight:600,fill:background,lineRatio:1.24});
+      body += s.svg;
+    }
+    if (cta) body += buttonSvg(spec,cta,84,height-132,340,accent,background);
+  } else if (variant === 'cta-card') {
+    body += `<rect width="${width}" height="${height}" fill="${escapeXml(ink)}"/>`;
+    body += `<circle cx="${width-120}" cy="150" r="220" fill="${escapeXml(accent)}" opacity="0.18"/>`;
+    body += `<circle cx="110" cy="${height-80}" r="180" fill="${escapeXml(secondary)}" opacity="0.08"/>`;
+    body += `<rect x="${pad}" y="140" width="96" height="8" rx="4" fill="${escapeXml(accent)}"/>`;
+    const h = textSvg({text:headline,x:pad,y:220,width:safeWidth,startFont:82,minFont:44,maxLines:4,fontFamily:headlineStyle.family,fontWeight:headlineStyle.weight,fill:background,transform:headlineStyle.transform,tracking:headlineStyle.tracking});
+    body += h.svg;
+    if (support) {
+      const s = textSvg({text:support,x:pad,y:260+h.height,width:760,startFont:30,minFont:22,maxLines:3,fontFamily:bodyStyle.family,fontWeight:bodyStyle.weight,fill:background,lineRatio:1.25});
+      body += s.svg;
+    }
+    if (cta) body += buttonSvg(spec,cta,pad,880,390,accent,'#ffffff');
+    body += `<path d="M ${pad} 1080 C 300 1010, 520 1140, 820 1030" fill="none" stroke="${escapeXml(accent)}" stroke-width="7" stroke-linecap="round" opacity="0.75"/>`;
   } else {
-    body += `<rect x="${pad}" y="${pad}" width="${safeWidth}" height="8" rx="4" fill="${escapeXml(accent)}"/>`;
-    const h = textSvg({text:headline,x:pad,y:190,width:safeWidth,startFont:78,minFont:46,maxLines:6,fontFamily:headlineStyle.family,fontWeight:headlineStyle.weight,fill:ink,transform:headlineStyle.transform,tracking:headlineStyle.tracking});
+    body += `<rect width="${width}" height="${height}" fill="${escapeXml(background)}"/>`;
+    body += `<rect x="${pad}" y="${pad}" width="96" height="8" rx="4" fill="${escapeXml(accent)}"/>`;
+    body += `<circle cx="${width-160}" cy="180" r="110" fill="${escapeXml(secondary)}"/>`;
+    const h = textSvg({text:headline,x:pad,y:170,width:safeWidth,startFont:76,minFont:40,maxLines:5,fontFamily:headlineStyle.family,fontWeight:headlineStyle.weight,fill:ink,transform:headlineStyle.transform,tracking:headlineStyle.tracking});
     body += h.svg;
     if (support) {
-      const s = textSvg({text:support,x:pad,y:225+h.height,width:safeWidth,startFont:32,minFont:24,maxLines:5,fontFamily:bodyStyle.family,fontWeight:bodyStyle.weight,fill:ink,lineRatio:1.3});
+      const sY = Math.max(610,220+h.height);
+      const s = textSvg({text:support,x:pad,y:sY,width:800,startFont:30,minFont:22,maxLines:4,fontFamily:bodyStyle.family,fontWeight:bodyStyle.weight,fill:ink,lineRatio:1.28});
       body += s.svg;
+      body += `<rect x="${pad}" y="${Math.min(height-260,sY+s.height+40)}" width="${safeWidth}" height="2" fill="${escapeXml(secondary)}"/>`;
     }
-    if (scene) body += imageSvg(scene,width-410,height-420,330,330,spec.cropAnchor,0.95);
-    if (cta) body += buttonSvg(spec,cta,pad,height-135,350,accent,background);
+    if (scene) body += imageSvg(scene,width-400,height-400,320,320,spec.cropAnchor,0.94);
+    if (cta) body += buttonSvg(spec,cta,pad,height-132,350,accent,background);
   }
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${defs}${body}</svg>`;
@@ -219,20 +261,22 @@ function slideToStatic(spec:CarouselRenderSpec,slide:CarouselSlide,index:number)
     ...((slide.subhead ?? slide.body) ? [{ role:'support' as const,text:(slide.subhead ?? slide.body)!,placement:'secondary',maxLines:4 }] : []),
     ...(slide.cta ? [{ role:'cta' as const,text:slide.cta,placement:'lower',maxLines:1 }] : [])
   ];
-  const isComparison = slide.layoutType === 'split-comparison';
-  const comparison = isComparison ? {
+  const isComparison = Boolean(slide.comparison) || slide.layoutType === 'split-comparison';
+  const comparison = slide.comparison ?? (isComparison ? {
     leftLabel:'CURRENT',leftText:slide.body ?? slide.subhead ?? slide.headline,
     rightLabel:'SHIFT',rightText:slide.headline
-  } : undefined;
-  const variant:StaticRenderSpec['layoutVariant'] = slide.layoutType === 'minimal-close'
-    ? 'statement-card'
+  } : undefined);
+  const variant:StaticRenderSpec['layoutVariant'] = slide.layoutType === 'cta-card' || slide.layoutType === 'minimal-close'
+    ? 'cta-card'
     : isComparison
       ? 'comparison-split'
-      : slide.visualType === 'type-led'
-        ? 'statement-card'
-        : index === 0 && slide.visualType === 'hybrid'
-          ? 'editorial-overlay'
-          : index % 2 === 0 ? 'split-card' : 'app-native';
+      : slide.layoutType === 'statement-emphasis'
+        ? 'statement-emphasis'
+        : slide.visualType === 'type-led'
+          ? 'statement-card'
+          : index === 0 && slide.visualType === 'hybrid'
+            ? 'editorial-overlay'
+            : 'statement-emphasis';
   return {
     kind:'static',mode:'scene-only',aspectRatio:'4:5',width:spec.width,height:spec.height,
     scenePrompt:slide.visualDescription,negativePrompt:slide.prohibitedRenderText,
@@ -242,7 +286,7 @@ function slideToStatic(spec:CarouselRenderSpec,slide:CarouselSlide,index:number)
   };
 }
 
-/** Deterministic composition layer. It emits editable SVG assets; rasterization can preserve the exact composition later. */
+/** Deterministic composition layer. Every output is one fixed 4:5 asset; carousel slides are composed independently. */
 export class SvgCompositionProvider implements CompositionProvider {
   async composeStatic(spec:StaticRenderSpec,scene?:RenderedAsset):Promise<RenderedAsset> {
     const svg = staticSvg(spec,scene);
