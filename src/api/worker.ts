@@ -39,8 +39,12 @@ function modelProviderFor(request:Request,env:Env) {
     : undefined;
 }
 
-function studioPageHtml() {
+function studioPageHtml(modelConfigured:boolean) {
+  const readinessBanner = modelConfigured
+    ? '<div style="margin:0 0 14px;padding:11px 14px;border-radius:12px;background:#edf8f0;border:1px solid #b9ddc3;color:#215b36;font-size:12px"><b>Agency AI is on.</b> Client research and creative generation will use model-assisted strategy.</div>'
+    : '<div style="margin:0 0 14px;padding:11px 14px;border-radius:12px;background:#fff0ed;border:1px solid #efc5bc;color:#843529;font-size:12px"><b>Agency AI is off.</b> Client deliverable generation is disabled. Deterministic mode is only for engineering tests and will no longer be allowed to create client ads.</div>';
   return agencyStudioHtml
+    .replace('<div class="layout">',`${readinessBanner}<div class="layout">`)
     .replace('<button id="sampleProfile" class="ghost">Load sample</button>','<button id="sampleProfile" class="ghost">Load sample</button><button class="secondary" onclick="location.href=\'/research\'">Research website</button>')
     .replace('const $=id=>document.getElementById(id);let sessionMedia=[];let studioResult=null;','const $=id=>document.getElementById(id);let sessionMedia=[];let studioResult=null;let loadedSourceNotes=[];let loadedSourceLinks=[];')
     .replace('mediaAssets:[],sourceNotes:[],updatedAt:new Date().toISOString()','mediaAssets:[],sourceLinks:loadedSourceLinks,sourceNotes:loadedSourceNotes,updatedAt:new Date().toISOString()')
@@ -55,7 +59,7 @@ export default {
     const url = new URL(request.url);
 
     if ((url.pathname === '/' || url.pathname === '/studio') && request.method === 'GET') {
-      return new Response(studioPageHtml(),{ headers:{ 'content-type':'text/html; charset=utf-8','cache-control':'no-store' } });
+      return new Response(studioPageHtml(Boolean(env.OPENAI_API_KEY)),{ headers:{ 'content-type':'text/html; charset=utf-8','cache-control':'no-store' } });
     }
 
     if ((url.pathname === '/research' || url.pathname === '/studio/research') && request.method === 'GET') {
@@ -71,9 +75,10 @@ export default {
       service:'lumi-creative-engine',
       mode:'agency-studio',
       modelProviderConfigured:Boolean(env.OPENAI_API_KEY),
+      agencyGenerationReady:Boolean(env.OPENAI_API_KEY),
       model:env.OPENAI_API_KEY ? (env.OPENAI_MODEL ?? 'gpt-5.6-terra') : null,
       imageProviderConfigured:Boolean(env.OPENAI_API_KEY),
-      imageModel:env.OPENAI_API_KEY ? (env.OPENAI_IMAGE_MODEL ?? 'gpt-image-2.5-flare') : null,
+      imageModel:env.OPENAI_API_KEY ? (env.OPENAI_IMAGE_MODEL ?? 'gpt-image-2') : null,
       compositionProvider:'svg',
       studioAvailable:true,
       websiteResearchAvailable:true,
@@ -100,7 +105,7 @@ export default {
     if (url.pathname === '/v1/creative/render') {
       const imageProvider = env.OPENAI_API_KEY ? new OpenAIImageProvider({
         apiKey:env.OPENAI_API_KEY,
-        model:env.OPENAI_IMAGE_MODEL ?? 'gpt-image-2.5-flare',
+        model:env.OPENAI_IMAGE_MODEL ?? 'gpt-image-2',
         quality:env.OPENAI_IMAGE_QUALITY ?? 'high'
       }) : undefined;
       return jsonResult(await handleRenderCreative(body,{
@@ -112,7 +117,7 @@ export default {
     const modelProvider = modelProviderFor(request,env);
 
     if (url.pathname === '/v1/studio/generate') {
-      return jsonResult(await handleAgencyStudioGenerate(body,{ modelProvider }));
+      return jsonResult(await handleAgencyStudioGenerate(body,{ modelProvider,requireModelProvider:true }));
     }
 
     return jsonResult(await handleGenerateCreativeSet(body, {
