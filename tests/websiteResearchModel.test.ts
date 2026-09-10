@@ -4,16 +4,24 @@ import { refineWebsiteResearchWithModel } from '../src/studio/refineWebsiteResea
 import type { ModelProvider } from '../src/providers/modelProvider.js';
 
 describe('model-assisted website research',()=>{
-  it('improves semantic fields, filters demo proof, and leaves real proof unapproved',async()=>{
-    const html=`<html><head><title>Founder Co</title><meta name="description" content="Messaging strategy for creative founders"></head><body><h1>Stop guessing what to say</h1><p>We help creative founders turn scattered ideas into a clear messaging system.</p><blockquote>“I finally know what to say.”</blockquote><p>Over 100 clients have used the program.</p><p>Example ad: 4.2x ROAS</p></body></html>`;
-    const fetchImpl=async()=>new Response(html,{status:200,headers:{'content-type':'text/html'}});
-    const research=await researchWebsite({url:'https://founder.example/',maxPages:1,fetchImpl});
+  it('improves semantic fields, separates offers, filters demo proof, and leaves real proof unapproved',async()=>{
+    const html=`<html><head><title>Founder Co</title><meta name="description" content="Messaging strategy for creative founders"></head><body><h1>Stop guessing what to say</h1><p>We help creative founders turn scattered ideas into a clear messaging system.</p><a href="/free-class">Free Class</a><a href="/mastermind">Mastermind</a><blockquote>“I finally know what to say.”</blockquote><p>Over 100 clients have used the program.</p><p>Example ad: 4.2x ROAS</p></body></html>`;
+    const pages:Record<string,string>={
+      'https://founder.example/':html,
+      'https://founder.example/free-class':`<html><head><title>Free Class</title></head><body><h1>Free Messaging Class</h1><p>A free class that helps creative founders choose one clear message.</p></body></html>`,
+      'https://founder.example/mastermind':`<html><head><title>Mastermind</title></head><body><h1>Founder Messaging Mastermind</h1><p>A six-month mastermind for established creative founders refining their positioning and sales message.</p></body></html>`
+    };
+    const fetchImpl=async(input:RequestInfo|URL)=>new Response(pages[String(input)]??'missing',{status:pages[String(input)]?200:404,headers:{'content-type':'text/html'}});
+    const research=await researchWebsite({url:'https://founder.example/',maxPages:3,fetchImpl});
     const provider:ModelProvider={
       async generate(){return {
         clientName:'Founder Co',industry:'marketing education',businessSummary:'Messaging strategy for creative founders who need a clearer system.',
         brandVoice:{traits:['direct','clear'],phrasesToUse:['Stop guessing what to say'],writingNotes:['Lead with clarity over hype.']},
         audience:{description:'Creative founders with scattered messaging.',desires:['a clear messaging system'],pains:['guessing what to say'],objections:[],customerLanguage:['I finally know what to say.'],buyingTriggers:['clarity'],anxieties:[]},
-        offer:{name:'Messaging Program',offerType:'program',summary:'A program that turns scattered ideas into a clear messaging system.',primaryPromise:'Stop guessing what to say',deliverables:[],differentiators:[],objections:[]},
+        offers:[
+          {name:'Free Messaging Class',url:'https://founder.example/free-class',offerType:'lead magnet / class',summary:'A free class that helps creative founders choose one clear message.',primaryPromise:'Choose one clear message.',deliverables:[],differentiators:[],objections:[]},
+          {name:'Founder Messaging Mastermind',url:'https://founder.example/mastermind',offerType:'mastermind',summary:'A six-month mastermind for established creative founders refining positioning and sales messaging.',primaryPromise:'Refine positioning and sales messaging.',deliverables:[],differentiators:[],objections:[]}
+        ],
         proofReview:[
           {text:'Over 100 clients have used the program.',classification:'likely-proof',reason:'Adoption claim about the actual offer.'},
           {text:'Example ad: 4.2x ROAS',classification:'example-or-demo',reason:'Explicitly presented as example ad content.'}
@@ -25,6 +33,10 @@ describe('model-assisted website research',()=>{
     expect(refined.profileDraft.industry).toBe('marketing education');
     expect(refined.profileDraft.audiences[0].pains).toContain('guessing what to say');
     expect(refined.profileDraft.brandVoice.traits).toContain('direct');
+    expect(refined.profileDraft.offers).toHaveLength(2);
+    expect(refined.profileDraft.offers.map(x=>x.name)).toEqual(['Free Messaging Class','Founder Messaging Mastermind']);
+    expect(refined.profileDraft.offers[0].url).toContain('/free-class');
+    expect(refined.profileDraft.offers[1].url).toContain('/mastermind');
     expect(refined.proofCandidates.join(' ')).toContain('100 clients');
     expect(refined.proofCandidates.join(' ')).not.toContain('4.2x ROAS');
     expect(refined.profileDraft.proofLibrary.length).toBeGreaterThan(0);
