@@ -8,7 +8,7 @@ const baseBrand = {
   logoAssetIds:['logo-1'], motifs:['subtle hand-drawn underline'], avoid:['generic SaaS gradients']
 };
 
-it('prefers trust-building founder assets for a founder-led service brand', async () => {
+it('prefers trust-building founder assets without repeating the same photo across the whole batch', async () => {
   const output = await generateCreativeSet({
     requestId:'founder-test',
     offer:{ name:'Founder Offer', summary:'A strategic coaching offer that replaces random posting with a clear sales system.', offerType:'coaching', proof:[], claimsAllowed:[], claimsProhibited:[] },
@@ -25,7 +25,9 @@ it('prefers trust-building founder assets for a founder-led service brand', asyn
 
   expect(output.concepts).toHaveLength(8);
   const founderUses = output.concepts.filter(c => c.mediaMatch.primaryAssetId === 'founder-1').length;
-  expect(founderUses).toBeGreaterThanOrEqual(3);
+  expect(founderUses).toBeGreaterThanOrEqual(2);
+  expect(founderUses).toBeLessThanOrEqual(3);
+  expect(output.concepts.some(c => c.route.format === 'talking-head')).toBe(true);
   expect(output.concepts.every(c => !c.brief.mustInclude.some(x => /testimonial/i.test(x)))).toBe(true);
   expect(output.concepts.every(c => c.renderPlan != null)).toBe(true);
 });
