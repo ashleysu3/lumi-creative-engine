@@ -70,7 +70,7 @@ export const CreativeEngineInputSchema = z.object({
   requestId:z.string(), offer:OfferContextSchema, audience:AudienceContextSchema, brand:BrandSystemSchema,
   mediaAssets:z.array(MediaAssetSchema).default([]), angles:z.array(AngleSchema).default([]), requestedCreativeCount:z.number().int().min(1).max(50).default(5),
   preferredFormats:z.array(CreativeFormatSchema).default([]), excludedFormats:z.array(CreativeFormatSchema).default([]),
-  formatTargets:z.record(CreativeFormatSchema,z.number().int().min(0)).optional()
+  formatTargets:z.partialRecord(CreativeFormatSchema,z.number().int().min(0)).optional()
 });
 
 export const CreativeRouteSchema = z.object({
