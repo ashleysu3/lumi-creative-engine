@@ -12,6 +12,32 @@ Capture the information a strong Meta creative strategist actually needs once pe
 - carousels with slide-by-slide approved user-facing copy;
 - later: finished rendered B-roll/video files and performance-learning feedback.
 
+## Client research / ingestion
+
+`/research` is the intake accelerator. Give it a public client website and it will crawl a small, bounded set of same-site pages, prioritize offer/service/program/pricing/FAQ/testimonial/result pages, and build a reviewable client-profile draft.
+
+Current extraction includes:
+
+- business/site summary and primary-offer candidate;
+- headline and page copy;
+- audience clues, pains, desires, FAQ/objection clues;
+- exact-language candidates from quotes and FAQs;
+- possible deliverables from offer-page lists;
+- proof/testimonial/metric candidates;
+- colors and font-family clues found in public HTML/CSS;
+- public social-account links discovered on the site;
+- source-page URLs and crawl warnings.
+
+Important safety rules:
+
+- proof discovered by research is **never** automatically verified or approved for ads;
+- the crawler only uses normal public HTTP(S) pages and blocks obvious local/private-network targets;
+- it does not bypass platform authentication or attempt to access private social data;
+- social accounts are currently discovered/recorded as sources; deeper Instagram/Facebook/TikTok/YouTube ingestion should use official account connections/APIs where available;
+- crawl scope is intentionally small (maximum 15 pages) and should be used for advertiser-owned or otherwise authorized public sites.
+
+A research draft is saved into the same browser-local client profile store and automatically loads when the user returns to `/studio`.
+
 ## Information model
 
 ### Persistent client creative profile
@@ -59,14 +85,16 @@ Before team-wide production use, replace browser-only storage with authenticated
 ## Routes
 
 - `/studio` (and `/`) — After Organic Creative Studio
+- `/research` — public website research -> reviewable client profile draft
 - `/lab` — low-level engine Creative Lab
+- `POST /v1/studio/research-website` — bounded public-site crawl + profile draft
 - `POST /v1/studio/generate` — profile + campaign + media -> engine input + concepts + agency delivery pack
 - `POST /v1/creative/render` — deterministic creative rendering / generated scene pipeline
 
 ## Production roadmap
 
-1. Validate the client intake and delivery-pack workflow on 2–3 real agency clients.
-2. Add automatic website/sales-page ingestion and structured extraction.
+1. Validate website research + client intake + delivery-pack workflow on 2–3 real agency clients.
+2. Add official social-source connections/adapters for Instagram/Facebook/TikTok/YouTube where available, plus URL/upload fallback for content the APIs cannot expose.
 3. Add media analysis: face/full-body detection, scene/context tags, negative-space scoring, screenshot detection, video segmentation, transcript, and clip timestamps.
 4. Add persistent team-only profiles/media via database + object storage.
 5. Add real static image generation and raster export with final-pixel visual QA.
