@@ -1,14 +1,14 @@
 {
   "name": "@adsbylumi/creative-engine",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "check": "npm run typecheck && npm test",
+    "dev": "wrangler dev",
     "deploy": "wrangler deploy"
   },
   "devDependencies": {
