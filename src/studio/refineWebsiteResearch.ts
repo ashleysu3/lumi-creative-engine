@@ -54,7 +54,7 @@ function compactResearchContext(result:WebsiteResearchResult) {
 }
 
 export async function refineWebsiteResearchWithModel(result:WebsiteResearchResult,provider:ModelProvider):Promise<WebsiteResearchResult> {
-  const raw = await provider.generate<typeof compactResearchContext extends (...args:any)=>infer R ? R : never,unknown>({
+  const raw = await provider.generate<ReturnType<typeof compactResearchContext>,unknown>({
     task:'website-research',
     input:compactResearchContext(result),
     system:`You are the senior client-research strategist for a Meta ads agency. Your job is to turn public website copy into a precise client creative profile draft.
