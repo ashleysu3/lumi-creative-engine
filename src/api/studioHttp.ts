@@ -3,6 +3,7 @@ import { MediaAssetSchema } from '../schemas/index.js';
 import { generateCreativeSet } from '../index.js';
 import { buildCreativeEngineInput } from '../studio/engineAdapter.js';
 import { AgencyDeliveryPackSchema, buildAgencyDeliveryPack } from '../studio/deliverables.js';
+import { refineAgencyDeliverablesWithModel } from '../studio/refineDeliverables.js';
 import { CampaignBriefSchema, ClientCreativeProfileSchema, type ClientCreativeProfile } from '../studio/profileSchemas.js';
 import type { ModelProvider } from '../providers/modelProvider.js';
 import type { HttpResponse } from './http.js';
@@ -90,7 +91,17 @@ export async function handleAgencyStudioGenerate(body:unknown,options:AgencyStud
       refineBriefs:Boolean(options.modelProvider),
       modelBatching:true
     });
-    const deliverables = AgencyDeliveryPackSchema.parse(buildAgencyDeliveryPack(output));
+    let deliverables = AgencyDeliveryPackSchema.parse(buildAgencyDeliveryPack(output));
+    if (options.modelProvider) {
+      deliverables = await refineAgencyDeliverablesWithModel(
+        parsed.data.profile,
+        parsed.data.campaign,
+        input,
+        output,
+        deliverables,
+        options.modelProvider
+      );
+    }
     return {
       status:200,
       headers:{'content-type':'application/json'},
