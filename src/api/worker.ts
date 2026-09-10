@@ -94,7 +94,7 @@ export default {
     catch { return Response.json({ ok:false,error:'invalid_json' },{ status:400, headers:corsHeaders }); }
 
     if (url.pathname === '/v1/studio/research-website') {
-      return jsonResult(await handleWebsiteResearch(body));
+      return jsonResult(await handleWebsiteResearch(body,{ modelProvider:modelProviderFor(request,env) }));
     }
 
     if (url.pathname === '/v1/creative/render') {
