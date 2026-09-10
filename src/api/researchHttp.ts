@@ -9,6 +9,11 @@ export const WebsiteResearchRequestSchema = z.object({
   extraUrls:z.array(z.string()).max(10).optional()
 });
 
+function normalizeUrl(value:string) {
+  try { return new URL(value.startsWith('http') ? value : `https://${value}`).toString(); }
+  catch { return ''; }
+}
+
 function sourceType(url:string):ClientSourceLink['type'] {
   try {
     const host = new URL(url).hostname.toLowerCase();
@@ -23,18 +28,31 @@ function sourceType(url:string):ClientSourceLink['type'] {
   return 'other';
 }
 
+function unique(values:string[]) { return [...new Set(values.filter(Boolean))]; }
+
 export async function handleWebsiteResearch(body:unknown):Promise<HttpResponse> {
   const parsed = WebsiteResearchRequestSchema.safeParse(body);
   if (!parsed.success) {
     return {status:400,headers:{'content-type':'application/json'},body:JSON.stringify({ok:false,error:'invalid_research_input',issues:parsed.error.issues})};
   }
   try {
-    const data = await researchWebsite(parsed.data);
-    const socialNotes = data.discoveredSocialLinks.map(url=>`Social profile discovered: ${url}`);
+    const root = normalizeUrl(parsed.data.url);
+    const rootOrigin = root ? new URL(root).origin : '';
+    const provided = (parsed.data.extraUrls ?? []).map(normalizeUrl).filter(Boolean);
+    const providedSocial = provided.filter(url=>sourceType(url)!=='other');
+    const sameSiteExtras = provided.filter(url=>{
+      try { return new URL(url).origin===rootOrigin; } catch { return false; }
+    });
+
+    const data = await researchWebsite({...parsed.data,url:root || parsed.data.url,extraUrls:sameSiteExtras});
+    const socialLinks = unique([...data.discoveredSocialLinks,...providedSocial]);
+    data.discoveredSocialLinks = socialLinks;
+    const socialNotes = socialLinks.map(url=>`Social profile discovered/provided: ${url}`);
     data.profileDraft.sourceNotes = [...(data.profileDraft.sourceNotes ?? []),...socialNotes];
     data.profileDraft.sourceLinks = [
       {type:'website',url:data.rootUrl,status:'analyzed',notes:`Crawled ${data.pages.length} public page${data.pages.length===1?'':'s'}.`},
-      ...data.discoveredSocialLinks.map(url=>({type:sourceType(url),url,status:'needs-connection' as const,notes:'Discovered from the public website. Connect or import this source for deeper content analysis.'}))
+      ...sameSiteExtras.filter(url=>url!==data.rootUrl).map(url=>({type:'sales-page' as const,url,status:'analyzed' as const,notes:'Provided as an additional same-site research source.'})),
+      ...socialLinks.map(url=>({type:sourceType(url),url,status:'needs-connection' as const,notes:'Social source recorded. Connect or import this source for deeper content analysis.'}))
     ];
     return {status:200,headers:{'content-type':'application/json'},body:JSON.stringify({ok:true,data})};
   } catch (error) {
