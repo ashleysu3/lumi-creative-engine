@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { researchWebsite } from '../studio/websiteResearch.js';
+import { cleanupWebsiteResearch } from '../studio/researchCleanup.js';
 import { refineWebsiteResearchWithModel } from '../studio/refineWebsiteResearch.js';
 import type { ClientSourceLink } from '../studio/profileSchemas.js';
 import type { ModelProvider } from '../providers/modelProvider.js';
@@ -48,7 +49,7 @@ export async function handleWebsiteResearch(body:unknown,options:WebsiteResearch
       try { return new URL(url).origin===rootOrigin; } catch { return false; }
     });
 
-    let data = await researchWebsite({...parsed.data,url:root || parsed.data.url,extraUrls:sameSiteExtras});
+    let data = cleanupWebsiteResearch(await researchWebsite({...parsed.data,url:root || parsed.data.url,extraUrls:sameSiteExtras}));
     const socialLinks = unique([...data.discoveredSocialLinks,...providedSocial]);
     data.discoveredSocialLinks = socialLinks;
     const socialNotes = socialLinks.map(url=>`Social profile discovered/provided: ${url}`);
@@ -59,12 +60,19 @@ export async function handleWebsiteResearch(body:unknown,options:WebsiteResearch
       ...socialLinks.map(url=>({type:sourceType(url),url,status:'needs-connection' as const,notes:'Social source recorded. Connect or import this source for deeper content analysis.'}))
     ];
 
+    let semanticSynthesis=false;
     if (options.modelProvider) {
-      try { data = await refineWebsiteResearchWithModel(data,options.modelProvider); }
-      catch (error) { data.warnings.push(`AI synthesis unavailable; deterministic research draft used. ${error instanceof Error?error.message:''}`.trim()); }
+      try {
+        data = cleanupWebsiteResearch(await refineWebsiteResearchWithModel(data,options.modelProvider));
+        semanticSynthesis=true;
+      } catch (error) {
+        data.warnings.push(`AI synthesis unavailable; source-only research draft used. ${error instanceof Error?error.message:''}`.trim());
+      }
+    } else {
+      data.warnings.push('AI synthesis is not configured in this environment. The result below is a cleaned source crawl, not a finished strategic client profile.');
     }
 
-    return {status:200,headers:{'content-type':'application/json'},body:JSON.stringify({ok:true,data,semanticSynthesis:Boolean(options.modelProvider)})};
+    return {status:200,headers:{'content-type':'application/json'},body:JSON.stringify({ok:true,data,semanticSynthesis,researchMode:semanticSynthesis?'ai-synthesized':'source-only'})};
   } catch (error) {
     return {status:422,headers:{'content-type':'application/json'},body:JSON.stringify({ok:false,error:'website_research_failed',message:error instanceof Error?error.message:'Unknown error'})};
   }
