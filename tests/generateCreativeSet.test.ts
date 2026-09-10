@@ -15,8 +15,8 @@ it('prefers trust-building founder assets for a founder-led service brand', asyn
     audience:{ description:'Business owners who are overwhelmed by content.', awarenessLevel:'problem aware', desires:['a calmer path to sales'], pains:['posting constantly without results'], objections:['I already tried a content plan'], customerLanguage:['I do not want to live on Instagram.'] },
     brand:baseBrand,
     mediaAssets:[
-      { id:'founder-1', type:'image', founderPresent:true, faceVisible:true, tags:['founder','office','natural'], textOverlaySuitability:85, trustPotential:95 },
-      { id:'desk-1', type:'image', founderPresent:false, faceVisible:false, tags:['desk'], textOverlaySuitability:90, trustPotential:45 }
+      { id:'founder-1', type:'image', founderPresent:true, faceVisible:true, tags:['founder','office','natural'], textOverlaySuitability:85, trustPotential:95, orientation:'portrait', segments:[] },
+      { id:'desk-1', type:'image', founderPresent:false, faceVisible:false, tags:['desk'], textOverlaySuitability:90, trustPotential:45, orientation:'portrait', segments:[] }
     ],
     angles:[{ id:'angle-1', name:'Stop Feeding The Content Machine', coreThesis:'You do not need more posts; you need a system that turns the right message into sales.', customerTruth:'You are tired of doing more marketing just to feel behind.' }],
     requestedCreativeCount:8,
@@ -27,6 +27,7 @@ it('prefers trust-building founder assets for a founder-led service brand', asyn
   const founderUses = output.concepts.filter(c => c.mediaMatch.primaryAssetId === 'founder-1').length;
   expect(founderUses).toBeGreaterThanOrEqual(3);
   expect(output.concepts.every(c => !c.brief.mustInclude.some(x => /testimonial/i.test(x)))).toBe(true);
+  expect(output.concepts.every(c => c.renderPlan != null)).toBe(true);
 });
 
 it('creates product-forward mix for SaaS', async () => {
@@ -35,7 +36,7 @@ it('creates product-forward mix for SaaS', async () => {
     offer:{ name:'Lumi', summary:'AI software for Meta advertisers that turns an offer into angles, hooks, creative strategy and production-ready ad concepts.', offerType:'SaaS software', uniqueMechanism:'Creative-led strategy built from the actual offer and buyer psychology.', proof:[], claimsAllowed:[], claimsProhibited:[] },
     audience:{ description:'Meta advertisers and business owners who struggle to know what ads to make.', awarenessLevel:'solution aware', desires:['better creative ideas'], pains:['generic AI outputs'], objections:['AI creative all looks the same'], customerLanguage:['What am I supposed to make ads about?'] },
     brand:{...baseBrand,photography:{...baseBrand.photography,founderLed:false}},
-    mediaAssets:[{ id:'screen-1', type:'screenshot', founderPresent:false, faceVisible:false, tags:['dashboard','UI','product'], textOverlaySuitability:70, trustPotential:75 }],
+    mediaAssets:[{ id:'screen-1', type:'screenshot', founderPresent:false, faceVisible:false, tags:['dashboard','UI','product'], textOverlaySuitability:70, trustPotential:75, orientation:'portrait', segments:[] }],
     angles:[{ id:'angle-1', name:'From Offer To Creative Strategy', coreThesis:'Lumi turns your actual offer into strategic ad directions instead of generic idea lists.' }],
     requestedCreativeCount:10,
     preferredFormats:[], excludedFormats:[]
