@@ -16,10 +16,13 @@ export * from './qa/qualityCheck.js';
 export * from './qa/postRenderVisualQA.js';
 export * from './rendering/compileCreativeOutput.js';
 export * from './rendering/renderProvider.js';
+export * from './rendering/svgCompositionProvider.js';
+export * from './rendering/renderPipeline.js';
 export * from './rendering/autoFix.js';
 export * from './rendering/versioning.js';
 export * from './providers/modelProvider.js';
 export * from './providers/openaiModelProvider.js';
+export * from './providers/openaiImageProvider.js';
 export * from './providers/openaiResponseSchemas.js';
 
 import {
@@ -40,7 +43,7 @@ import { qualityCheck } from './qa/qualityCheck.js';
 import { compileCreativeOutput } from './rendering/compileCreativeOutput.js';
 import type { ModelProvider } from './providers/modelProvider.js';
 
-export const ENGINE_VERSION = '0.5.0';
+export const ENGINE_VERSION = '0.6.0';
 
 export type GenerateCreativeSetOptions = {
   modelProvider?: ModelProvider;
