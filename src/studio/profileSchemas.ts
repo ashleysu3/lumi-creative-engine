@@ -55,6 +55,10 @@ export const CreativeLearningSchema = z.object({
   performanceNotes:z.array(z.string()).default([])
 });
 
+const emptyCreativeLearning = {
+  winningAngles:[],losingAngles:[],winningHooks:[],fatiguedHooks:[],winningFormats:[],weakFormats:[],founderNotes:[],visualNotes:[],audienceLearnings:[],performanceNotes:[]
+};
+
 export const ClientCreativeProfileSchema = z.object({
   id:z.string(),
   clientName:z.string(),
@@ -72,12 +76,14 @@ export const ClientCreativeProfileSchema = z.object({
   offers:z.array(OfferProfileSchema).default([]),
   proofLibrary:z.array(ProofItemSchema).default([]),
   competitors:z.array(z.object({ name:z.string(),url:z.string().optional(),notes:z.string().optional() })).default([]),
-  creativeLearning:CreativeLearningSchema.default({}),
+  creativeLearning:CreativeLearningSchema.default(emptyCreativeLearning),
   globalConstraints:z.array(z.string()).default([]),
   mediaAssets:z.array(MediaAssetSchema).default([]),
   sourceNotes:z.array(z.string()).default([]),
   updatedAt:z.string().optional()
 });
+
+const defaultDeliveryMix = { staticAds:4,brollAds:3,talkingHeadScripts:3,carousels:2 };
 
 export const CampaignBriefSchema = z.object({
   id:z.string(),
@@ -98,7 +104,7 @@ export const CampaignBriefSchema = z.object({
     brollAds:z.number().int().min(0).default(3),
     talkingHeadScripts:z.number().int().min(0).default(3),
     carousels:z.number().int().min(0).default(2)
-  }).default({}),
+  }).default(defaultDeliveryMix),
   newProof:z.array(z.string()).default([]),
   creativeDirectionNotes:z.array(z.string()).default([])
 });
