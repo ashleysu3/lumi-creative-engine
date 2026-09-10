@@ -22,12 +22,12 @@ export const RenderDesignTokensSchema = z.object({
   bodyFont:z.string().optional(),
   photoTreatment:z.string().optional(),
   motifs:z.array(z.string()).default([]),
-  typographyRoles:z.record(z.string(),RenderTypographyRoleSchema).default({}),
-  textures:z.array(z.string()).default([]),
-  patterns:z.array(z.string()).default([]),
-  logoRules:z.object({ clearSpace:z.string().optional(), preferredPlacements:z.array(z.string()).default([]) }).default({}),
-  components:z.object({ cornerRadius:z.string().optional(), borderStyle:z.string().optional(), shadowStyle:z.string().optional(), buttonStyle:z.string().optional() }).default({}),
-  layoutNotes:z.array(z.string()).default([])
+  typographyRoles:z.record(z.string(),RenderTypographyRoleSchema).optional(),
+  textures:z.array(z.string()).optional(),
+  patterns:z.array(z.string()).optional(),
+  logoRules:z.object({ clearSpace:z.string().optional(), preferredPlacements:z.array(z.string()).optional() }).optional(),
+  components:z.object({ cornerRadius:z.string().optional(), borderStyle:z.string().optional(), shadowStyle:z.string().optional(), buttonStyle:z.string().optional() }).optional(),
+  layoutNotes:z.array(z.string()).optional()
 });
 
 export const StaticLayoutVariantSchema = z.enum(['split-card','editorial-overlay','native-caption','app-native','screenshot-frame','statement-card']);
