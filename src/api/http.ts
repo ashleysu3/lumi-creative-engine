@@ -1,4 +1,4 @@
-import { generateCreativeSet } from '../index.js';
+import { generateCreativeSet, type GenerateCreativeSetOptions } from '../index.js';
 import { CreativeEngineInputSchema } from '../schemas/index.js';
 
 export type HttpResponse = {
@@ -7,7 +7,7 @@ export type HttpResponse = {
   body: string;
 };
 
-export async function handleGenerateCreativeSet(requestBody: unknown): Promise<HttpResponse> {
+export async function handleGenerateCreativeSet(requestBody: unknown, options:GenerateCreativeSetOptions = {}): Promise<HttpResponse> {
   const parsed = CreativeEngineInputSchema.safeParse(requestBody);
   if (!parsed.success) {
     return {
@@ -18,7 +18,7 @@ export async function handleGenerateCreativeSet(requestBody: unknown): Promise<H
   }
 
   try {
-    const output = await generateCreativeSet(parsed.data);
+    const output = await generateCreativeSet(parsed.data, options);
     return {
       status: 200,
       headers: { 'content-type':'application/json' },
