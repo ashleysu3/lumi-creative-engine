@@ -26,25 +26,25 @@ export function generateCreativeBrief(input: CreativeEngineInput, route: Creativ
   ];
   const mustAvoid = [
     ...input.brand.avoid,
-    ...input.brand.avoidExamples,
+    ...(input.brand.avoidExamples ?? []),
     ...input.offer.claimsProhibited,
     'invented testimonials or performance claims',
     'generic AI brains, robots, rockets, or floating laptop mockups unless explicitly relevant',
     'production-spec labels in customer-facing copy'
   ];
   const typographyRoles = Object.fromEntries(
-    Object.entries(input.brand.typography.roles).filter(([,value])=>Boolean(value))
+    Object.entries(input.brand.typography.roles ?? {}).filter(([,value])=>Boolean(value))
   );
   const photoTreatment = [
-    ...input.brand.photography.treatment,
+    ...(input.brand.photography.treatment ?? []),
     ...input.brand.photography.styleNotes,
-    ...input.brand.photography.lighting,
-    ...input.brand.photography.cropRules
+    ...(input.brand.photography.lighting ?? []),
+    ...(input.brand.photography.cropRules ?? [])
   ].join('; ') || (founderPreferred ? 'Natural, credible, founder-forward.' : undefined);
   const layoutNotes = [
-    ...(input.brand.layout.density ? [`Density: ${input.brand.layout.density}`] : []),
-    ...input.brand.layout.spacingNotes,
-    ...input.brand.layout.personality
+    ...(input.brand.layout?.density ? [`Density: ${input.brand.layout.density}`] : []),
+    ...(input.brand.layout?.spacingNotes ?? []),
+    ...(input.brand.layout?.personality ?? [])
   ];
 
   return {
@@ -59,18 +59,18 @@ export function generateCreativeBrief(input: CreativeEngineInput, route: Creativ
     mustAvoid,
     brandAdaptation: {
       colors: strongestColor(input),
-      headlineFont: input.brand.typography.roles.headline?.family ?? input.brand.typography.headlineFamily,
-      bodyFont: input.brand.typography.roles.body?.family ?? input.brand.typography.bodyFamily,
+      headlineFont: input.brand.typography.roles?.headline?.family ?? input.brand.typography.headlineFamily,
+      bodyFont: input.brand.typography.roles?.body?.family ?? input.brand.typography.bodyFamily,
       photoTreatment,
       motifs: input.brand.motifs,
       typographyRoles,
-      textures: input.brand.textures,
-      patterns: input.brand.patterns,
+      textures: input.brand.textures ?? [],
+      patterns: input.brand.patterns ?? [],
       logoRules: {
-        clearSpace:input.brand.logoRules.clearSpace,
-        preferredPlacements:input.brand.logoRules.preferredPlacements
+        clearSpace:input.brand.logoRules?.clearSpace,
+        preferredPlacements:input.brand.logoRules?.preferredPlacements ?? []
       },
-      components:input.brand.components,
+      components:input.brand.components ?? {},
       layoutNotes
     }
   };
