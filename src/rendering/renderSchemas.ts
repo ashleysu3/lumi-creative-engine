@@ -7,12 +7,27 @@ export const TextOverlaySchema = z.object({
   maxLines:z.number().int().positive().optional()
 });
 
+export const RenderTypographyRoleSchema = z.object({
+  family:z.string().optional(),
+  weight:z.number().int().min(100).max(1000).optional(),
+  textTransform:z.enum(['none','uppercase','lowercase','capitalize']).optional(),
+  tracking:z.number().optional(),
+  lineHeight:z.number().positive().optional(),
+  italic:z.boolean().optional()
+});
+
 export const RenderDesignTokensSchema = z.object({
   colors:z.array(z.string()).default([]),
   headlineFont:z.string().optional(),
   bodyFont:z.string().optional(),
   photoTreatment:z.string().optional(),
-  motifs:z.array(z.string()).default([])
+  motifs:z.array(z.string()).default([]),
+  typographyRoles:z.record(z.string(),RenderTypographyRoleSchema).default({}),
+  textures:z.array(z.string()).default([]),
+  patterns:z.array(z.string()).default([]),
+  logoRules:z.object({ clearSpace:z.string().optional(), preferredPlacements:z.array(z.string()).default([]) }).default({}),
+  components:z.object({ cornerRadius:z.string().optional(), borderStyle:z.string().optional(), shadowStyle:z.string().optional(), buttonStyle:z.string().optional() }).default({}),
+  layoutNotes:z.array(z.string()).default([])
 });
 
 export const StaticLayoutVariantSchema = z.enum(['split-card','editorial-overlay','native-caption','app-native','screenshot-frame','statement-card']);
@@ -90,6 +105,7 @@ export const CompiledCreativeOutputSchema = z.discriminatedUnion('kind',[
 ]);
 
 export type TextOverlay = z.infer<typeof TextOverlaySchema>;
+export type RenderTypographyRole = z.infer<typeof RenderTypographyRoleSchema>;
 export type RenderDesignTokens = z.infer<typeof RenderDesignTokensSchema>;
 export type StaticLayoutVariant = z.infer<typeof StaticLayoutVariantSchema>;
 export type StaticRenderSpec = z.infer<typeof StaticRenderSpecSchema>;
