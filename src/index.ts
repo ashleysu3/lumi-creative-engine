@@ -43,7 +43,7 @@ import { qualityCheck } from './qa/qualityCheck.js';
 import { compileCreativeOutput } from './rendering/compileCreativeOutput.js';
 import type { ModelProvider } from './providers/modelProvider.js';
 
-export const ENGINE_VERSION = '0.7.0';
+export const ENGINE_VERSION = '0.7.1';
 
 export type GenerateCreativeSetOptions = {
   modelProvider?: ModelProvider;
