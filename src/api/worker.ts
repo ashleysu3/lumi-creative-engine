@@ -42,9 +42,10 @@ function modelProviderFor(request:Request,env:Env) {
 function studioPageHtml() {
   return agencyStudioHtml
     .replace('<button id="sampleProfile" class="ghost">Load sample</button>','<button id="sampleProfile" class="ghost">Load sample</button><button class="secondary" onclick="location.href=\'/research\'">Research website</button>')
-    .replace('const $=id=>document.getElementById(id);let sessionMedia=[];let studioResult=null;','const $=id=>document.getElementById(id);let sessionMedia=[];let studioResult=null;let loadedSourceNotes=[];')
-    .replace('sourceNotes:[],updatedAt:new Date().toISOString()','sourceNotes:loadedSourceNotes,updatedAt:new Date().toISOString()')
-    .replace('function populateProfile(p){','function populateProfile(p){loadedSourceNotes=p.sourceNotes||[];')
+    .replace('const $=id=>document.getElementById(id);let sessionMedia=[];let studioResult=null;','const $=id=>document.getElementById(id);let sessionMedia=[];let studioResult=null;let loadedSourceNotes=[];let loadedSourceLinks=[];')
+    .replace('mediaAssets:[],sourceNotes:[],updatedAt:new Date().toISOString()','mediaAssets:[],sourceLinks:loadedSourceLinks,sourceNotes:loadedSourceNotes,updatedAt:new Date().toISOString()')
+    .replace('sourceNotes:[],updatedAt:new Date().toISOString()','sourceLinks:loadedSourceLinks,sourceNotes:loadedSourceNotes,updatedAt:new Date().toISOString()')
+    .replace('function populateProfile(p){','function populateProfile(p){loadedSourceNotes=p.sourceNotes||[];loadedSourceLinks=p.sourceLinks||[];')
     .replace('sample();health();',`(()=>{const id=localStorage.getItem('after-organic-last-profile');const raw=id&&localStorage.getItem('after-organic-profile:'+id);if(raw){try{populateProfile(JSON.parse(raw));$('profileStatus').className='status good';$('profileStatus').textContent='Loaded saved client profile.'}catch{sample()}}else{sample()}health()})();`);
 }
 
