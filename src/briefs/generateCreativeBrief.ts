@@ -2,12 +2,13 @@ import type { CreativeBrief, CreativeEngineInput, CreativeRoute } from '../schem
 
 /** Ordered for renderers: background, primary ink, accent, secondary. */
 function strongestColor(input: CreativeEngineInput) {
-  return [
+  const candidates = [
     input.brand.colors.background[0],
     input.brand.colors.primary[0],
     input.brand.colors.accent[0],
     input.brand.colors.secondary[0]
-  ].filter((c):c is string => Boolean(c) && !input.brand.colors.prohibited.includes(c!));
+  ];
+  return candidates.filter((color):color is string => typeof color === 'string' && !input.brand.colors.prohibited.includes(color));
 }
 
 export function generateCreativeBrief(input: CreativeEngineInput, route: CreativeRoute): CreativeBrief {
@@ -25,10 +26,25 @@ export function generateCreativeBrief(input: CreativeEngineInput, route: Creativ
   ];
   const mustAvoid = [
     ...input.brand.avoid,
+    ...input.brand.avoidExamples,
     ...input.offer.claimsProhibited,
     'invented testimonials or performance claims',
     'generic AI brains, robots, rockets, or floating laptop mockups unless explicitly relevant',
     'production-spec labels in customer-facing copy'
+  ];
+  const typographyRoles = Object.fromEntries(
+    Object.entries(input.brand.typography.roles).filter(([,value])=>Boolean(value))
+  );
+  const photoTreatment = [
+    ...input.brand.photography.treatment,
+    ...input.brand.photography.styleNotes,
+    ...input.brand.photography.lighting,
+    ...input.brand.photography.cropRules
+  ].join('; ') || (founderPreferred ? 'Natural, credible, founder-forward.' : undefined);
+  const layoutNotes = [
+    ...(input.brand.layout.density ? [`Density: ${input.brand.layout.density}`] : []),
+    ...input.brand.layout.spacingNotes,
+    ...input.brand.layout.personality
   ];
 
   return {
@@ -43,10 +59,19 @@ export function generateCreativeBrief(input: CreativeEngineInput, route: Creativ
     mustAvoid,
     brandAdaptation: {
       colors: strongestColor(input),
-      headlineFont: input.brand.typography.headlineFamily,
-      bodyFont: input.brand.typography.bodyFamily,
-      photoTreatment: input.brand.photography.styleNotes.join('; ') || (founderPreferred ? 'Natural, credible, founder-forward.' : undefined),
-      motifs: input.brand.motifs
+      headlineFont: input.brand.typography.roles.headline?.family ?? input.brand.typography.headlineFamily,
+      bodyFont: input.brand.typography.roles.body?.family ?? input.brand.typography.bodyFamily,
+      photoTreatment,
+      motifs: input.brand.motifs,
+      typographyRoles,
+      textures: input.brand.textures,
+      patterns: input.brand.patterns,
+      logoRules: {
+        clearSpace:input.brand.logoRules.clearSpace,
+        preferredPlacements:input.brand.logoRules.preferredPlacements
+      },
+      components:input.brand.components,
+      layoutNotes
     }
   };
 }
