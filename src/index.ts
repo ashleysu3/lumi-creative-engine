@@ -38,12 +38,12 @@ import { refineRouteWithModel, refineBriefWithModel } from './strategy/refineWit
 import { refineRoutesBatchWithModel, refineBriefsBatchWithModel } from './strategy/refineBatchWithModel.js';
 import { batchRedundancyCheck } from './strategy/batchRedundancyCheck.js';
 import { generateCreativeBrief } from './briefs/generateCreativeBrief.js';
-import { matchMedia } from './briefs/matchMedia.js';
+import { matchMedia, type MediaUsageCounts } from './briefs/matchMedia.js';
 import { qualityCheck } from './qa/qualityCheck.js';
 import { compileCreativeOutput } from './rendering/compileCreativeOutput.js';
 import type { ModelProvider } from './providers/modelProvider.js';
 
-export const ENGINE_VERSION = '0.6.0';
+export const ENGINE_VERSION = '0.7.0';
 
 export type GenerateCreativeSetOptions = {
   modelProvider?: ModelProvider;
@@ -105,9 +105,11 @@ export async function generateCreativeSet(rawInput: CreativeEngineInput, options
   const briefResult = await refineBriefs(input,routes,seededBriefs,options);
   const briefs = briefResult.briefs;
 
+  const usageCounts:MediaUsageCounts = {};
   const concepts = routes.map((route,index) => {
     const brief = briefs[index];
-    const mediaMatch = matchMedia(input,route);
+    const mediaMatch = matchMedia(input,route,usageCounts);
+    if (mediaMatch.primaryAssetId) usageCounts[mediaMatch.primaryAssetId] = (usageCounts[mediaMatch.primaryAssetId] ?? 0) + 1;
     const qa = qualityCheck(input,route,brief,mediaMatch);
     const renderPlan = compileCreativeOutput(route,brief,mediaMatch);
     return { route, brief, mediaMatch, qa, renderPlan };
@@ -123,6 +125,9 @@ export async function generateCreativeSet(rawInput: CreativeEngineInput, options
 
   const redundancy = batchRedundancyCheck(routes);
   for (const issue of redundancy) warnings.push(`Creative mix redundancy: ${issue.dimension} "${issue.value}" appears in ${issue.routeIds.length} routes (${issue.severity}).`);
+
+  const repeatedMedia = Object.entries(usageCounts).filter(([,count])=>count>2);
+  for (const [assetId,count] of repeatedMedia) warnings.push(`Media diversity: asset "${assetId}" is used in ${count} concepts; consider adding more suitable media.`);
 
   const output: CreativeEngineOutput = { requestId: input.requestId, engineVersion: ENGINE_VERSION, concepts, warnings };
   return CreativeEngineOutputSchema.parse(output);
