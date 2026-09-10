@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CompiledCreativeOutputSchema } from "../rendering/renderSchemas.js";
 
 export const CreativeFormatSchema = z.enum([
   "designed-static","editorial-static","lofi-native-graphic","notes-app","fake-message","search-bar","annotated-screenshot","ugc-photo-overlay","talking-head","talking-head-captions","broll-text","broll-voiceover","screen-recording","screen-recording-facecam","ugc-demo","founder-story-video","testimonial-video","carousel","comparison-carousel","motion-graphic","kinetic-typography","meme-reel","pov-video"
@@ -60,7 +61,7 @@ export const QualityResultSchema = z.object({
   status: z.enum(["ready", "minor", "auto-fix", "blocked"]), criticalFailures: z.array(z.string()).default([]), warnings: z.array(z.string()).default([])
 });
 
-export const CreativeConceptSchema = z.object({ route: CreativeRouteSchema, brief: CreativeBriefSchema, mediaMatch: MediaMatchSchema, qa: QualityResultSchema, renderPlan: z.unknown().optional() });
+export const CreativeConceptSchema = z.object({ route: CreativeRouteSchema, brief: CreativeBriefSchema, mediaMatch: MediaMatchSchema, qa: QualityResultSchema, renderPlan: CompiledCreativeOutputSchema });
 export const CreativeEngineOutputSchema = z.object({ requestId: z.string(), engineVersion: z.string(), concepts: z.array(CreativeConceptSchema), warnings: z.array(z.string()).default([]) });
 
 export type CreativeEngineInput = z.infer<typeof CreativeEngineInputSchema>;
