@@ -42,9 +42,12 @@ function modelProviderFor(request:Request,env:Env) {
 function studioPageHtml(modelConfigured:boolean) {
   const readinessBanner = modelConfigured
     ? '<div style="margin:0 0 14px;padding:11px 14px;border-radius:12px;background:#edf8f0;border:1px solid #b9ddc3;color:#215b36;font-size:12px"><b>Agency AI is on.</b> Client research and creative generation will use model-assisted strategy.</div>'
-    : '<div style="margin:0 0 14px;padding:11px 14px;border-radius:12px;background:#fff0ed;border:1px solid #efc5bc;color:#843529;font-size:12px"><b>Agency AI is off.</b> Client deliverable generation is disabled. Deterministic mode is only for engineering tests and will no longer be allowed to create client ads.</div>';
+    : '<div style="margin:0 0 14px;padding:11px 14px;border-radius:12px;background:#fff0ed;border:1px solid #efc5bc;color:#843529;font-size:12px"><b>Agency AI is off.</b> Client deliverable generation is disabled. Add the local OpenAI configuration, then re-run Client Research before making client ads.</div>';
   return agencyStudioHtml
     .replace('<div class="layout">',`${readinessBanner}<div class="layout">`)
+    .replace('<option value="deterministic">Deterministic only</option>','')
+    .replace('AI refinement when configured','Agency AI')
+    .replace("j.ok?'Engine online · '+(j.modelProviderConfigured?'AI available':'deterministic'):'Engine unavailable'","j.ok?(j.agencyGenerationReady?'Engine online · agency AI ready':'Engine online · AI setup required'):'Engine unavailable'")
     .replace('<button id="sampleProfile" class="ghost">Load sample</button>','<button id="sampleProfile" class="ghost">Load sample</button><button class="secondary" onclick="location.href=\'/research\'">Research website</button>')
     .replace('const $=id=>document.getElementById(id);let sessionMedia=[];let studioResult=null;','const $=id=>document.getElementById(id);let sessionMedia=[];let studioResult=null;let loadedSourceNotes=[];let loadedSourceLinks=[];')
     .replace('mediaAssets:[],sourceNotes:[],updatedAt:new Date().toISOString()','mediaAssets:[],sourceLinks:loadedSourceLinks,sourceNotes:loadedSourceNotes,updatedAt:new Date().toISOString()')
