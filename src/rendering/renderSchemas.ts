@@ -30,7 +30,9 @@ export const RenderDesignTokensSchema = z.object({
   layoutNotes:z.array(z.string()).optional()
 });
 
-export const StaticLayoutVariantSchema = z.enum(['split-card','editorial-overlay','native-caption','app-native','screenshot-frame','statement-card','comparison-split']);
+export const StaticLayoutVariantSchema = z.enum([
+  'split-card','editorial-overlay','native-caption','app-native','screenshot-frame','statement-card','comparison-split','statement-emphasis','cta-card'
+]);
 
 export const ComparisonContentSchema = z.object({
   leftLabel:z.string(),
@@ -70,6 +72,7 @@ export const CarouselSlideSchema = z.object({
   visualType:z.enum(['photo','graphic','screenshot','type-led','hybrid']),
   visualDescription:z.string(),
   layoutType:z.string(),
+  comparison:ComparisonContentSchema.optional(),
   prohibitedRenderText:z.array(z.string()).default([])
 });
 
