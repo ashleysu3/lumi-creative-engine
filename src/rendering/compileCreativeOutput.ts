@@ -96,7 +96,7 @@ function buildStatic(route:CreativeRoute, brief:CreativeBrief, media:MediaMatch)
     design:designTokens(brief),
     overlays:[
       { role:'headline', text:headline, placement:'Primary text-safe area with strong mobile hierarchy; never cover face, product, or critical UI.', maxLines:6 },
-      ...(support ? [{ role:'support' as const, text:support, placement:'Secondary text-safe area directly supporting the headline.', maxLines:4 }] : []),
+      ...(support ? [{ role:'support' as const, text:support, placement:'Secondary text-safe area directly supporting the headline.', maxLines:3 }] : []),
       ...(cta ? [{ role:'cta' as const, text:cta, placement:'Lower safe zone with generous edge clearance.', maxLines:1 }] : [])
     ],
     layoutRules:[
@@ -112,25 +112,58 @@ function buildStatic(route:CreativeRoute, brief:CreativeBrief, media:MediaMatch)
   };
 }
 
+function ctaHeadlineFor(route:CreativeRoute):string {
+  if (['old-way-new-way','comparison-chart','before-after'].includes(route.archetypeId)) return 'Ready for the better way?';
+  if (route.archetypeId === 'myth-vs-reality') return 'Ready to leave the myth behind?';
+  if (route.archetypeId === 'how-it-works') return 'Ready to see it in action?';
+  if (/founder|story|confession/.test(route.archetypeId)) return 'Ready to try a different approach?';
+  return 'Ready to make the next move?';
+}
+
+function comparisonHeadline(route:CreativeRoute):string {
+  if (route.archetypeId === 'myth-vs-reality') return 'Myth vs. reality';
+  if (route.archetypeId === 'before-after') return 'Before vs. after';
+  return 'Old way vs. better way';
+}
+
 function buildCarousel(route:CreativeRoute, brief:CreativeBrief, media:MediaMatch):CarouselRenderSpec {
   const headline = safeText(brief.headline) ?? route.primaryHook;
   const support = safeText(brief.supportingCopy);
   const cta = safeText(brief.cta) ?? 'Learn more';
-  const compare = route.format === 'comparison-carousel' || ['comparison-chart','old-way-new-way','myth-vs-reality'].includes(route.archetypeId);
-  const slide2Headline = compare ? 'The familiar approach' : 'Why this keeps feeling harder';
-  const slide3Headline = compare ? 'The strategic shift' : route.singleBigIdea;
+  const comparison = comparisonFor(route,brief);
+  const compare = route.format === 'comparison-carousel' || Boolean(comparison);
+  const slide2Headline = compare ? comparisonHeadline(route) : 'Why this keeps feeling harder';
+  const slide3Headline = compare ? 'What changes' : 'The strategic shift';
   const forbidden = ['CARD 1','CARD 2','SLIDE 1','SLIDE 2','HOOK','HEADLINE:','SUBHEAD:','BODY:','CTA SLIDE','LEFT SIDE','RIGHT SIDE','VISUAL SHOULD','SHOW'];
 
   return {
     kind:'carousel', aspectRatio:'4:5', width:1080, height:1350,
     primaryAssetId:media.primaryAssetId, assetSource:media.source, cropAnchor:media.cropAnchor, design:designTokens(brief),
     slides:[
-      { slideNumber:1, role:'hook', headline, subhead:support, visualType: media.primaryAssetId ? 'hybrid':'type-led', visualDescription:brief.visualConcept, layoutType:'hero-hook', prohibitedRenderText:forbidden },
-      { slideNumber:2, role:'problem', headline:slide2Headline, body:support, visualType:'graphic', visualDescription:'Use one concise visual contrast that makes the audience tension understandable at a glance.', layoutType: compare ? 'split-comparison':'single-idea', prohibitedRenderText:forbidden },
-      { slideNumber:3, role:'shift', headline:slide3Headline, body:route.singleBigIdea, visualType:'hybrid', visualDescription:'Make the new belief, mechanism, or correction visually obvious with one supporting visual device.', layoutType:'statement-plus-evidence', prohibitedRenderText:forbidden },
-      { slideNumber:4, role:'cta', headline:cta, cta, visualType:'type-led', visualDescription:'Simple branded close. One action only. No extra teaching.', layoutType:'minimal-close', prohibitedRenderText:forbidden }
+      {
+        slideNumber:1, role:'hook', headline, subhead:support,
+        visualType:media.primaryAssetId ? 'hybrid':'type-led', visualDescription:brief.visualConcept,
+        layoutType:'hero-hook', prohibitedRenderText:forbidden
+      },
+      {
+        slideNumber:2, role:'problem', headline:slide2Headline,
+        body:compare ? undefined : support,
+        visualType:'type-led', visualDescription:'Use a concise visual contrast that makes the audience tension understandable at a glance.',
+        layoutType:compare ? 'split-comparison':'statement-emphasis', comparison, prohibitedRenderText:forbidden
+      },
+      {
+        slideNumber:3, role:'shift', headline:slide3Headline, body:route.singleBigIdea,
+        visualType:'type-led', visualDescription:'Make the new belief, mechanism, or correction visually obvious without requiring generated imagery.',
+        layoutType:'statement-emphasis', prohibitedRenderText:forbidden
+      },
+      {
+        slideNumber:4, role:'cta', headline:ctaHeadlineFor(route), cta,
+        visualType:'type-led', visualDescription:'Bold branded close with one clear next action.',
+        layoutType:'cta-card', prohibitedRenderText:forbidden
+      }
     ],
     continuityRules:[
+      'Every slide is a separate 1080x1350 asset. Never append one slide below another.',
       'Only user-facing approved copy may render. Production labels and internal instructions are never render-eligible.',
       'Use consistent brand typography and spacing while varying composition enough that slides do not feel templated.',
       'Never truncate a slide headline with ellipses. Reduce type size or simplify secondary copy first.',
