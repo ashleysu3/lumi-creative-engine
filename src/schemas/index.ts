@@ -23,21 +23,21 @@ export const BrandSystemSchema = z.object({
     allowedWeights:z.array(z.number()).default([]), notes:z.array(z.string()).default([]),
     roles:z.object({
       headline:TypographyRoleSchema.optional(), subheadline:TypographyRoleSchema.optional(), body:TypographyRoleSchema.optional(), cta:TypographyRoleSchema.optional(), eyebrow:TypographyRoleSchema.optional(), accent:TypographyRoleSchema.optional()
-    }).default({})
+    }).optional()
   }),
   photography: z.object({
     founderLed:z.boolean().default(false), styleNotes:z.array(z.string()).default([]), avoid:z.array(z.string()).default([]),
-    lighting:z.array(z.string()).default([]), cropRules:z.array(z.string()).default([]), treatment:z.array(z.string()).default([])
+    lighting:z.array(z.string()).optional(), cropRules:z.array(z.string()).optional(), treatment:z.array(z.string()).optional()
   }),
   logoAssetIds:z.array(z.string()).default([]),
-  logoRules:z.object({ clearSpace:z.string().optional(), minSize:z.string().optional(), preferredPlacements:z.array(z.string()).default([]), avoid:z.array(z.string()).default([]) }).default({}),
-  textures:z.array(z.string()).default([]),
-  patterns:z.array(z.string()).default([]),
+  logoRules:z.object({ clearSpace:z.string().optional(), minSize:z.string().optional(), preferredPlacements:z.array(z.string()).optional(), avoid:z.array(z.string()).optional() }).optional(),
+  textures:z.array(z.string()).optional(),
+  patterns:z.array(z.string()).optional(),
   motifs:z.array(z.string()).default([]),
-  components:z.object({ cornerRadius:z.string().optional(), borderStyle:z.string().optional(), shadowStyle:z.string().optional(), buttonStyle:z.string().optional() }).default({}),
-  layout:z.object({ density:z.enum(['airy','balanced','dense']).optional(), spacingNotes:z.array(z.string()).default([]), personality:z.array(z.string()).default([]) }).default({}),
-  approvedExamples:z.array(z.string()).default([]),
-  avoidExamples:z.array(z.string()).default([]),
+  components:z.object({ cornerRadius:z.string().optional(), borderStyle:z.string().optional(), shadowStyle:z.string().optional(), buttonStyle:z.string().optional() }).optional(),
+  layout:z.object({ density:z.enum(['airy','balanced','dense']).optional(), spacingNotes:z.array(z.string()).optional(), personality:z.array(z.string()).optional() }).optional(),
+  approvedExamples:z.array(z.string()).optional(),
+  avoidExamples:z.array(z.string()).optional(),
   avoid:z.array(z.string()).default([])
 });
 
@@ -79,10 +79,10 @@ export const CreativeBriefSchema = z.object({
   routeId:z.string(), headline:z.string(), supportingCopy:z.string().optional(), cta:z.string().optional(), visualConcept:z.string(), composition:z.string(), focalPoint:z.string(), mustInclude:z.array(z.string()).default([]), mustAvoid:z.array(z.string()).default([]),
   brandAdaptation:z.object({
     colors:z.array(z.string()).default([]), headlineFont:z.string().optional(), bodyFont:z.string().optional(), photoTreatment:z.string().optional(), motifs:z.array(z.string()).default([]),
-    typographyRoles:z.record(z.string(),TypographyRoleSchema).default({}), textures:z.array(z.string()).default([]), patterns:z.array(z.string()).default([]),
-    logoRules:z.object({ clearSpace:z.string().optional(), preferredPlacements:z.array(z.string()).default([]) }).default({}),
-    components:z.object({ cornerRadius:z.string().optional(), borderStyle:z.string().optional(), shadowStyle:z.string().optional(), buttonStyle:z.string().optional() }).default({}),
-    layoutNotes:z.array(z.string()).default([])
+    typographyRoles:z.record(z.string(),TypographyRoleSchema).optional(), textures:z.array(z.string()).optional(), patterns:z.array(z.string()).optional(),
+    logoRules:z.object({ clearSpace:z.string().optional(), preferredPlacements:z.array(z.string()).optional() }).optional(),
+    components:z.object({ cornerRadius:z.string().optional(), borderStyle:z.string().optional(), shadowStyle:z.string().optional(), buttonStyle:z.string().optional() }).optional(),
+    layoutNotes:z.array(z.string()).optional()
   })
 });
 
