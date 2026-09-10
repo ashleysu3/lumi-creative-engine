@@ -121,9 +121,10 @@ export function matchMedia(input: CreativeEngineInput, route: CreativeRoute, usa
   }
 
   const selected = ranked[0];
+  const selectedUseCount = usage[selected.asset.id] ?? 0;
   const exactScreenshot = route.format === 'annotated-screenshot' && selected.asset.type === 'screenshot';
   const exactVideo = isVideoFormat(route.format) && selected.asset.type === 'video';
-  const strongFounderChosen = founderEligibleRoute && selected.asset.founderPresent && selected.asset.faceVisible && selected.asset.faceFullyVisible !== false && (selected.asset.trustPotential ?? 70) >= 70;
+  const strongFounderChosen = founderEligibleRoute && selectedUseCount < 2 && selected.asset.founderPresent && selected.asset.faceVisible && selected.asset.faceFullyVisible !== false && (selected.asset.trustPotential ?? 70) >= 70;
 
   let source: MediaMatch['source'];
   if (exactScreenshot || exactVideo || strongFounderChosen || selected.score >= 80) source = 'uploaded';
@@ -132,7 +133,7 @@ export function matchMedia(input: CreativeEngineInput, route: CreativeRoute, usa
 
   const warnings = [...selected.warnings];
   if (founderEligibleRoute && strongFounder && selected.asset.id !== strongFounder.asset.id) warnings.push('A stronger founder image exists, but this concept is intentionally using another visual to keep the batch diverse.');
-  if ((usage[selected.asset.id] ?? 0) >= 2) warnings.push('This asset has already been used multiple times in the batch; prefer another visual if possible.');
+  if (selectedUseCount >= 2) warnings.push('This asset has already been used multiple times in the batch; prefer another visual if possible.');
 
   if (source === 'generated') {
     return generated(`Best uploaded asset scored ${selected.score}/100 and is not strong enough for this concept.`,warnings);
