@@ -13,7 +13,14 @@ export const AgencyStudioRequestSchema = z.object({
   sessionMedia:z.array(MediaAssetSchema).default([])
 });
 
-export type AgencyStudioHttpOptions = { modelProvider?:ModelProvider };
+export type AgencyStudioHttpOptions = {
+  modelProvider?:ModelProvider;
+  /**
+   * Internal agency output should never silently fall back to deterministic
+   * template copy. Tests may explicitly opt out when exercising plumbing.
+   */
+  requireModelProvider?:boolean;
+};
 
 export async function handleAgencyStudioGenerate(body:unknown,options:AgencyStudioHttpOptions={}):Promise<HttpResponse> {
   const parsed = AgencyStudioRequestSchema.safeParse(body);
@@ -22,6 +29,19 @@ export async function handleAgencyStudioGenerate(body:unknown,options:AgencyStud
     headers:{'content-type':'application/json'},
     body:JSON.stringify({ok:false,error:'invalid_agency_studio_input',issues:parsed.error.issues})
   };
+
+  const requireModelProvider = options.requireModelProvider !== false;
+  if (requireModelProvider && !options.modelProvider) {
+    return {
+      status:503,
+      headers:{'content-type':'application/json'},
+      body:JSON.stringify({
+        ok:false,
+        error:'ai_required_for_agency_generation',
+        message:'Agency creative generation is disabled because no AI model provider is configured. Deterministic mode is for engine tests only and is not allowed to produce client deliverables.'
+      })
+    };
+  }
 
   try {
     const input = buildCreativeEngineInput(parsed.data.profile,parsed.data.campaign,parsed.data.sessionMedia);
@@ -35,7 +55,11 @@ export async function handleAgencyStudioGenerate(body:unknown,options:AgencyStud
     return {
       status:200,
       headers:{'content-type':'application/json'},
-      body:JSON.stringify({ok:true,data:{input,output,deliverables}})
+      body:JSON.stringify({
+        ok:true,
+        data:{input,output,deliverables},
+        generationMode:options.modelProvider?'ai-synthesized':'deterministic-test-only'
+      })
     };
   } catch (error) {
     return {
