@@ -1,7 +1,13 @@
 import type { CreativeBrief, CreativeEngineInput, CreativeRoute } from '../schemas/index.js';
 
+/** Ordered for renderers: background, primary ink, accent, secondary. */
 function strongestColor(input: CreativeEngineInput) {
-  return [...input.brand.colors.primary, ...input.brand.colors.accent, ...input.brand.colors.secondary].filter(c => !input.brand.colors.prohibited.includes(c)).slice(0,4);
+  return [
+    input.brand.colors.background[0],
+    input.brand.colors.primary[0],
+    input.brand.colors.accent[0],
+    input.brand.colors.secondary[0]
+  ].filter((c):c is string => Boolean(c) && !input.brand.colors.prohibited.includes(c!));
 }
 
 export function generateCreativeBrief(input: CreativeEngineInput, route: CreativeRoute): CreativeBrief {
