@@ -15,6 +15,8 @@ export async function handleWebsiteResearch(body:unknown):Promise<HttpResponse> 
   }
   try {
     const data = await researchWebsite(parsed.data);
+    const socialNotes = data.discoveredSocialLinks.map(url=>`Social profile discovered: ${url}`);
+    data.profileDraft.sourceNotes = [...(data.profileDraft.sourceNotes ?? []),...socialNotes];
     return {status:200,headers:{'content-type':'application/json'},body:JSON.stringify({ok:true,data})};
   } catch (error) {
     return {status:422,headers:{'content-type':'application/json'},body:JSON.stringify({ok:false,error:'website_research_failed',message:error instanceof Error?error.message:'Unknown error'})};
