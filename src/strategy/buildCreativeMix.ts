@@ -4,7 +4,40 @@ export type MixSlot = { format: string; count: number; rationale: string };
 
 type WeightedFormat = [format:string, weight:number, rationale:string];
 
+function targetedMix(input:CreativeEngineInput):MixSlot[]|undefined {
+  if (!input.formatTargets) return undefined;
+  const excluded = new Set(input.excludedFormats);
+  const entries = Object.entries(input.formatTargets)
+    .filter(([format,count])=>count > 0 && !excluded.has(format as any))
+    .map(([format,count])=>({format,count,rationale:'Requested by the agency delivery mix.'}));
+  if (!entries.length) return undefined;
+
+  const requested = input.requestedCreativeCount;
+  const total = entries.reduce((sum,item)=>sum+item.count,0);
+  if (total === requested) return entries;
+
+  if (total > requested) {
+    let remaining = requested;
+    return entries.map(item=>{
+      const count = Math.min(item.count,remaining);
+      remaining -= count;
+      return {...item,count};
+    }).filter(item=>item.count>0);
+  }
+
+  const result = entries.map(item=>({...item}));
+  let remaining = requested-total;
+  for (let i=0; remaining>0 && result.length; i=(i+1)%result.length) {
+    result[i].count += 1;
+    remaining -= 1;
+  }
+  return result;
+}
+
 export function buildCreativeMix(input: CreativeEngineInput): MixSlot[] {
+  const targets = targetedMix(input);
+  if (targets) return targets;
+
   const text = `${input.offer.offerType} ${input.offer.summary}`.toLowerCase();
   const founder = input.brand.photography.founderLed || input.mediaAssets.some(a => a.founderPresent);
   const hasScreenshot = input.mediaAssets.some(a => a.type === 'screenshot');

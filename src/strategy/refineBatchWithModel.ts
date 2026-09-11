@@ -48,10 +48,18 @@ function sharedContext(input:CreativeEngineInput) {
   };
 }
 
-/**
- * Refines the whole route set in one model call so the model can actively create
- * contrast across the batch instead of optimizing each concept in isolation.
- */
+const agencyQualityBar = [
+  'This is internal agency work, not a demo. Every concept should be strong enough that a senior Meta ads strategist would seriously consider putting it in front of a paying client.',
+  'A concept fails if its hook could be pasted onto an unrelated coaching, ecommerce, or SaaS brand with only the noun changed.',
+  'Do not expose internal strategy labels such as Desired Outcome, Cost of the Current Way, The Objection, Campaign Priority, Proven Direction, old way, better way, or current approach unless those exact words are genuinely compelling customer-facing copy.',
+  'Do not manufacture contrast simply because the seed archetype is a comparison. Find the specific belief, behavior, decision, tradeoff, mechanism, or moment that creates the contrast for this offer.',
+  'Prefer concrete buyer moments, exact customer language, specific consequences, vivid observations, credible mechanisms, and sharp points of view over abstract marketing language.',
+  'Do not write placeholders disguised as copy: no more useful path, desired outcome, upgrade, game changer, level up, unlock, transform your business, stop guessing, work smarter, or similar generic filler unless the supplied customer language specifically supports it.',
+  'For founder-led brands, copy should sound like something this founder could plausibly say out loud. For educational/service brands, preserve nuance and expertise instead of forcing every thought into a slogan.',
+  'Judge the batch as media-buying inventory: concepts should cover meaningfully different reasons to care, not twelve cosmetic variations of the same thesis.'
+].join(' ');
+
+/** Refines the whole route set in one model call so the model can actively create contrast across the batch. */
 export async function refineRoutesBatchWithModel(
   input:CreativeEngineInput,
   routes:CreativeRoute[],
@@ -63,16 +71,17 @@ export async function refineRoutesBatchWithModel(
     input:{ ...sharedContext(input), routeSeeds:routes },
     responseSchemaName:'RefinedCreativeRouteBatch',
     system:[
-      'You are Ads by Lumi senior paid-social creative director. Refine the entire proposed creative batch together.',
+      'You are the senior paid-social creative director at After Organic. Refine the entire proposed creative batch together.',
+      agencyQualityBar,
       'Return exactly one refined item for every supplied routeId and do not invent routeIds.',
-      'Preserve each route’s angle, archetype, format, treatment, and style. Improve only the creative thinking inside that route.',
-      'The batch must feel intentionally varied: avoid repeating the same hook grammar, visual device, emotional register, founder pose, or “old vs new” idea across multiple concepts.',
+      'Preserve each route’s angle, archetype, format, treatment, and style as production constraints, but completely rewrite weak seed thinking. The seed copy is scaffolding, not approved language.',
+      'The batch must feel intentionally varied: avoid repeating the same hook grammar, visual device, emotional register, founder pose, or comparison idea across multiple concepts.',
       'Each concept gets one big idea. Hooks should sound like sharp human advertising, not generic marketing templates or AI copy.',
       'Use the offer mechanism, audience language, objections, desires, and available media. Make visuals concrete enough that a designer or creator can picture the ad.',
-      'Use real founder imagery when trust matters and a strong founder asset exists. Use real product UI when software credibility benefits from it.',
+      'Use real founder imagery when trust matters and a strong founder asset exists. Use real product/interface media when credibility benefits from it.',
       'Never invent testimonials, statistics, customer counts, guarantees, features, revenue, performance outcomes, or proof not supplied in the context.',
       'Do not create generic AI imagery such as robots, glowing brains, random magic sparkles, rockets, generic laptop people, or floating dashboards unless strategically necessary.',
-      'Score critically. A score in the 70s can be a viable concept; reserve 90+ for genuinely exceptional routes.'
+      'Score critically. A score in the 70s can be viable; reserve 90+ for genuinely exceptional routes. If a route is weak, lower the score rather than flattering it.'
     ].join(' ')
   });
   const parsed = RouteBatchSchema.parse(raw);
@@ -108,12 +117,13 @@ export async function refineBriefsBatchWithModel(
     },
     responseSchemaName:'RefinedCreativeBriefBatch',
     system:[
-      'You are Ads by Lumi production creative director. Refine this entire batch of Meta ad briefs together.',
-      'Return exactly one brief for every supplied routeId. Preserve the strategy and format of each route.',
+      'You are the production creative director at After Organic. Refine this entire batch of Meta ad briefs together.',
+      agencyQualityBar,
+      'Return exactly one brief for every supplied routeId. Preserve the strategy and format of each route, but replace any generic seed copy.',
       'Customer-facing headlines and support copy must sound natural, specific, and immediately understandable on a phone.',
       'Do not repeat the same opening phrase, cadence, claim, or visual composition across the batch simply because it worked once.',
-      'Supporting copy should add a second useful thought. Return null when there is no strong supporting line rather than filler, category labels, or fragments.',
-      'Visual concepts must specify concrete subjects/actions/compositions. The visual should add meaning rather than literally duplicate the headline.',
+      'Supporting copy must add a second useful thought. Return null when there is no strong supporting line rather than filler, category labels, or fragments.',
+      'Visual concepts must specify concrete subjects/actions/compositions and explain why that visual helps communicate the idea. The visual should add meaning rather than literally duplicate the headline.',
       'Founder-led offers should strategically use supplied founder media where it increases trust; software concepts should use real interface media where it increases believability.',
       'Brand colors, typography, photography rules, prohibited colors, motifs, and avoid lists are hard constraints.',
       'Never invent proof, testimonials, metrics, results, guarantees, features, or claims that are absent from the supplied offer.',
